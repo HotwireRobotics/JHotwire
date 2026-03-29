@@ -1,0 +1,20 @@
+﻿﻿﻿﻿﻿﻿ Error at frc.robot.subsystems.ModularSubsystem.lambda$runDevice$0(ModularSubsystem.java:48): Unhandled exception: java.lang.NullPointerException: Cannot invoke "frc.robot.subsystems.Motor.set(double)" because "d" is null ﻿
+﻿﻿﻿﻿﻿﻿ 	at frc.robot.subsystems.ModularSubsystem.lambda$runDevice$0(ModularSubsystem.java:48) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.FunctionalCommand.initialize(FunctionalCommand.java:52) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.ConditionalCommand.initialize(ConditionalCommand.java:54) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.ParallelCommandGroup.initialize(ParallelCommandGroup.java:70) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.CommandScheduler.initCommand(CommandScheduler.java:169) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.CommandScheduler.schedule(CommandScheduler.java:212) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.CommandScheduler.schedule(CommandScheduler.java:243) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.button.Trigger.lambda$whileTrue$3(Trigger.java:152) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.button.Trigger$1.run(Trigger.java:79) ﻿
+﻿﻿﻿﻿﻿﻿ 	at java.base/java.lang.Iterable.forEach(Unknown Source) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj.event.EventLoop.poll(EventLoop.java:38) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj2.command.CommandScheduler.run(CommandScheduler.java:280) ﻿
+﻿﻿﻿﻿﻿﻿ 	at frc.robot.Robot.robotPeriodic(Robot.java:123) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj.IterativeRobotBase.loopFunc(IterativeRobotBase.java:400) ﻿
+﻿﻿﻿﻿﻿﻿ 	at org.littletonrobotics.junction.LoggedRobot.startCompetition(LoggedRobot.java:113) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj.RobotBase.runRobot(RobotBase.java:436) ﻿
+﻿﻿﻿﻿﻿﻿ 	at edu.wpi.first.wpilibj.RobotBase.startRobot(RobotBase.java:527) ﻿
+﻿﻿﻿﻿﻿﻿ 	at frc.robot.Main.main(Main.java:14) ﻿
+﻿﻿﻿﻿﻿﻿  ﻿

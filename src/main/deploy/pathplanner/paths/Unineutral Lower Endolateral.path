@@ -1,0 +1,93 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 5.479230769230769,
+        "y": 0.6049555555555548
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 5.230746063350056,
+        "y": 0.6324392042102595
+      },
+      "isLocked": false,
+      "linkedName": "Second Exo Unineutral"
+    },
+    {
+      "anchor": {
+        "x": 4.586833631484795,
+        "y": 0.6049555555555548
+      },
+      "prevControl": {
+        "x": 4.836833107241165,
+        "y": 0.6054675336212696
+      },
+      "nextControl": {
+        "x": 3.7917889087656524,
+        "y": 0.6033273703041141
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 2.9480679785330945,
+        "y": 1.6579785330948118
+      },
+      "prevControl": {
+        "x": 2.2341502683363146,
+        "y": 0.5384257602862248
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": "Lowest Firing Location"
+    }
+  ],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.5892116182572533,
+      "rotationDegrees": 0.0
+    },
+    {
+      "waypointRelativePos": 1.427807486631015,
+      "rotationDegrees": 0.0
+    }
+  ],
+  "constraintZones": [
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 1.525423728813559,
+      "maxWaypointRelativePos": 2.0,
+      "constraints": {
+        "maxVelocity": 3.0,
+        "maxAcceleration": 3.0,
+        "maxAngularVelocity": 70.0,
+        "maxAngularAcceleration": 100.0,
+        "nominalVoltage": 12.0,
+        "unlimited": false
+      }
+    }
+  ],
+  "pointTowardsZones": [],
+  "eventMarkers": [],
+  "globalConstraints": {
+    "maxVelocity": 3.0,
+    "maxAcceleration": 3.0,
+    "maxAngularVelocity": 540.0,
+    "maxAngularAcceleration": 720.0,
+    "nominalVoltage": 12.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": 55.06068979532298
+  },
+  "reversed": false,
+  "folder": "Unineutral",
+  "idealStartingState": {
+    "velocity": 2.0,
+    "rotation": 0.0
+  },
+  "useDefaultConstraints": true
+}
