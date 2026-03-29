@@ -3,26 +3,21 @@ package frc.robot;
 import static edu.wpi.first.units.Units.*;
 
 import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.commands.DriveCommands;
 import frc.robot.constants.Constants;
-import frc.robot.constants.LimelightHelpers;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.simulation.Handler;
-import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.Drivetrain;
 import frc.robot.subsystems.vision.Vision;
 
-import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.littletonrobotics.junction.Logger;
@@ -30,7 +25,7 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 public class RobotContainer {
   // Declare subsystems.
-  public final Drive drive;
+  public final Drivetrain drive;
   public final Vision vision;
 
   // Simualtion
@@ -43,7 +38,7 @@ public class RobotContainer {
 
   public RobotContainer() {
     // Initialize subsystems.
-    drive = new Drive();
+    drive = new Drivetrain();
     vision = new Vision(
       drive::getPose, drive::getRotation,
       drive::addVisionMeasurement);
