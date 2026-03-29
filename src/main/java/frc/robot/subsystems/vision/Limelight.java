@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.Timer;
@@ -205,5 +206,31 @@ public class Limelight implements VisionIO {
       return cameras.stream()
         .map(camera -> camera.getMeasurement())
         .collect(Collectors.toList());
+    }
+
+    
+    /**
+     * Collect inputs from all vision systems.
+     * 
+     * @param inputs system for logging.
+     */
+    public void updateInputs(VisionInputs inputs) {
+      List<Measurement> measurements = getMeasurements();
+      if (measurements.size() > 0) {
+        // Stream all camera inputs.
+        inputs.detecting = measurements.stream()
+          .anyMatch(m -> m.count > 0);
+        inputs.distances = measurements.stream().mapToDouble(m -> m.distance.in(Meters))
+          .toArray(); // Note: never do this ever again; very annoying.
+        inputs.estimates = measurements.stream().map(m -> m.pose)
+          .toArray(Pose2d[]::new);
+        inputs.count = measurements.stream().map(m -> m.count)
+          .reduce(0, Integer::sum);
+      } else {
+        inputs.detecting = false;
+        inputs.distances = new double[] {-1.0};
+        inputs.estimates = new Pose2d[] {Pose2d.kZero};
+        inputs.count = 0;
+      }
     }
 }

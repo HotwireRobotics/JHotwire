@@ -20,6 +20,7 @@ import frc.robot.constants.Constants.Mode;
 import frc.robot.constants.LimelightHelpers.PoseEstimate;
 import frc.robot.hotwire.StateManager;
 import frc.robot.subsystems.vision.VisionIO.Measurement;
+import frc.robot.subsystems.vision.VisionIO.VisionInputs;
 
 /**
  * <strong>Vision Subsystem</strong>
@@ -42,6 +43,7 @@ public class Vision extends SubsystemBase {
 
     // Subsystem abstraction.
     private final VisionIO io;
+    private final VisionInputs inputs;
 
     // State system.
     public enum State {
@@ -63,6 +65,7 @@ public class Vision extends SubsystemBase {
         io = Constants.mode.equals(Mode.SIM) 
             ? new Simulated() 
             : new Limelight();
+        inputs = new VisionInputs();
 
         // Initialize orientation suppliers.
         this.location = location;
@@ -121,6 +124,9 @@ public class Vision extends SubsystemBase {
 
     @Override
     public void periodic() {
+        // Update inputs.
+        io.updateInputs(inputs);
+        
         // Get a pose estimate from the camera.
         List<Measurement> measurements = io.getMeasurements();
 

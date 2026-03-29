@@ -186,7 +186,7 @@ public final class Constants {
      */
     public static Alliance getAlliance() {
       Optional<Alliance> alliance = DriverStation.getAlliance();
-      if (alliance == null) return Alliance.Red;
+      if (alliance.isEmpty()) return Alliance.Red;
       return alliance.get();
     }
 

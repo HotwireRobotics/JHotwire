@@ -133,28 +133,10 @@ public interface VisionIO {
 
     // /** Pipeline index. */
     // int index = 0;
-
-    /**
-     * Collect inputs from all vision systems.
-     */
-    public void updateInputs(VisionIO io) {
-      List<Measurement> measurements = io.getMeasurements();
-      if (measurements.size() > 0) {
-        // Stream all camera inputs.
-        detecting = measurements.stream()
-          .anyMatch(m -> m.count > 0);
-        distances = measurements.stream().mapToDouble(m -> m.distance.in(Meters))
-          .toArray(); // Note: never do this ever again; very annoying.
-        estimates = measurements.stream().map(m -> m.pose)
-          .toArray(Pose2d[]::new);
-        count = measurements.stream().map(m -> m.count)
-          .reduce(0, Integer::sum);
-      } else {
-        detecting = false;
-        distances = new double[] {-1.0};
-        estimates = new Pose2d[] {Pose2d.kZero};
-        count = 0;
-      }
-    }
   }
+
+  /**
+   * Collect inputs from all vision systems.
+   */
+  public void updateInputs(VisionInputs inputs);
 }

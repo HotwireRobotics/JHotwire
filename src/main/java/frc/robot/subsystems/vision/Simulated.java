@@ -11,15 +11,21 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Timer;
 
 public class Simulated implements VisionIO {
-    
-    public Simulated() {}
+  public Simulated() {}
 
-    /**
-     * Provide a simulated camera pose estimate.
-     * 
-     * @return a simulated pose estimate.
-     */
-    public List<Measurement> getMeasurements() {
-      return null;
-    }
+  /**
+   * Provide a simulated camera pose estimate.
+   * 
+   * @return a simulated pose estimate.
+   */
+  public List<Measurement> getMeasurements() {
+    return null;
+  }
+
+  /**
+   * Collect inputs from all vision systems.
+   * 
+   * @param inputs system for logging.
+   */
+  public void updateInputs(VisionInputs inputs) {}
 }
