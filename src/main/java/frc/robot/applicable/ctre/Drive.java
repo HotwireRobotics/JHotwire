@@ -424,12 +424,4 @@ public class Drive extends SubsystemBase {
       new Translation2d(TunerConstants.BackRight.LocationX, TunerConstants.BackRight.LocationY)
     };
   }
-
-  public boolean isNeutralZone() {
-    return (
-      (getPose().getMeasureX().gt(Inches.of(180))) &&
-      (getPose().getMeasureX().lt(Constants.middle.getMeasureX().times(2)
-          .minus(Inches.of(180))))
-    );
-  }
 }

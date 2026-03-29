@@ -15,6 +15,8 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.constants.Constants;
 import frc.robot.constants.LimelightHelpers;
 import frc.robot.hotwire.Logs;
+import frc.robot.subsystems.drive.Drivetrain.Side;
+import frc.robot.subsystems.drive.Drivetrain.Zone;
 
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
@@ -95,7 +97,8 @@ public class Robot extends LoggedRobot {
 
     // Log pose data.
     Logger.recordOutput("Robot Pose", container.drive.getPose());
-    Logger.recordOutput("Is Neutral", container.drive.isNeutralZone());
+    Logger.recordOutput("IsNeutral", container.drive.getZone().equals(Zone.NEUTRAL));
+    Logger.recordOutput("IsRightSide", container.drive.getSide().equals(Side.RIGHT));
 
     // Log field poses.
     Logger.recordOutput("Hub Pose", Constants.Poses.hub.getPose());

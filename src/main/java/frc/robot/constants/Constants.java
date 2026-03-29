@@ -360,8 +360,12 @@ public final class Constants {
    * @param pose
    */
   public static Pose2d mirror(Pose2d pose) {
-    return new Pose2d(middle.getMeasureX().times(2).minus(pose.getMeasureX()), pose.getMeasureY(), pose.getRotation());
-  }
+  return new Pose2d(
+      pose.getMeasureX(),
+      middle.getMeasureY().times(2).minus(pose.getMeasureY()),
+      pose.getRotation()
+  );
+}
 
   /**
    * Flip an angle based on alliance color.

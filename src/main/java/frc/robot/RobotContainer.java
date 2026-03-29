@@ -16,6 +16,8 @@ import frc.robot.applicable.simulation.Handler;
 import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.subsystems.drive.Drivetrain;
+import frc.robot.subsystems.drive.Drivetrain.Side;
+import frc.robot.subsystems.drive.Drivetrain.Zone;
 import frc.robot.subsystems.vision.Vision;
 
 import java.util.function.Supplier;
@@ -28,10 +30,10 @@ public class RobotContainer {
   public final Drivetrain drive;
   public final Vision vision;
 
-  // Simualtion
+  // Simulation.
   public final Handler simulation;
 
-  // Dashboard inputs
+  // Dashboard inputs.
   private final LoggedDashboardChooser<Command> autoChooser;
   private final LoggedDashboardChooser<Boolean> localization;
   private final LoggedDashboardChooser<Boolean> alignment;
@@ -135,7 +137,7 @@ public class RobotContainer {
     Pose2d robotPose = drive.getPose();
     Pose2d pointer = Constants.Poses.pointer.getPose();
 
-    // pointer = (drive.isRightSide()) ? pointer : Constants.mirror(pointer);
+    pointer = (drive.getSide().equals(Side.RIGHT)) ? pointer : Constants.mirror(pointer);
     
     // Pose differences.
     double dx = pointer.getX() - robotPose.getX();
@@ -152,10 +154,10 @@ public class RobotContainer {
 
   /** Orient robot to face the hub. */
   private Command firingOrientation() {
-    // return drive.isNeutralZone() 
-    //   ? pointToAngle(this::calculatePassingRotation)
-    //   : pointToAngle(this::calculateHubRotation);
-    return pointToAngle(this::calculateHubRotation);
+    return Commands.either(
+      pointToAngle(this::calculatePassingRotation), 
+      pointToAngle(this::calculateHubRotation), 
+      () -> drive.getZone().equals(Zone.NEUTRAL));
   }
 
   /**
@@ -182,6 +184,11 @@ public class RobotContainer {
   
     // Hold wheel position.
     Constants.Joysticks.driver.rightBumper().onTrue(Commands.runOnce(drive::stopWithX, drive));
+
+    // Align with hub or pointer.
+    Constants.Joysticks.operator
+      .x()
+      .whileTrue(firingOrientation());
 
     // Zero pose heading.
     Constants.Joysticks.driver
