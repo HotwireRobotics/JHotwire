@@ -7,6 +7,7 @@ import com.pathplanner.lib.commands.PathPlannerAuto;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -20,7 +21,6 @@ import frc.robot.subsystems.drive.Drivetrain.Side;
 import frc.robot.subsystems.drive.Drivetrain.Zone;
 import frc.robot.subsystems.vision.Vision;
 
-import java.util.Set;
 import java.util.function.Supplier;
 
 import org.littletonrobotics.junction.Logger;
@@ -155,12 +155,14 @@ public class RobotContainer {
 
   /** Orient robot to face the hub. */
   private Command firingOrientation() {
-    return Commands.defer(
-      () -> Commands.either(
-        pointToAngle(this::calculatePassingRotation), 
-        pointToAngle(this::calculateHubRotation), 
-        () -> drive.getZone().equals(Zone.NEUTRAL)
-    ), Set.of(drive));
+    return Commands.either(
+      pointToAngle(this::calculateHubRotation),
+      pointToAngle(this::calculatePassingRotation),
+      () -> drive.getZone().equals(
+        Constants.Indication.getAlliance()
+          .equals(Alliance.Blue) 
+            ? Zone.BLUE 
+            : Zone.RED));
   }
 
   /**
