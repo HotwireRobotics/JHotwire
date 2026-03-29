@@ -15,6 +15,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.StateManager;
 import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.constants.LimelightHelpers.PoseEstimate;
@@ -41,7 +42,18 @@ public class Vision extends SubsystemBase {
 
     // Subsystem abstraction.
     private final VisionIO io;
-    
+
+    // State system.
+    public enum State {
+        READING,
+        STOPPED
+    }
+    /** Subsystem state. */
+    public final StateManager<State> manager = new StateManager<State>(
+        getName(), State.READING
+    );
+
+
     public Vision(
         Supplier<Pose2d>     location,
         Supplier<Rotation2d> rotation,
@@ -101,6 +113,10 @@ public class Vision extends SubsystemBase {
 
         // Trash invalid measurements.
         return (estimation.count > 0);
+    }
+
+    public void setEnabled(boolean value) {
+        this.manager.set(value ? State.READING : State.STOPPED);
     }
 
     @Override

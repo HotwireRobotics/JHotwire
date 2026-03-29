@@ -38,6 +38,8 @@ public class RobotContainer {
 
   // Dashboard inputs
   private final LoggedDashboardChooser<Command> autoChooser;
+  private final LoggedDashboardChooser<Boolean> localization;
+  private final LoggedDashboardChooser<Boolean> alignment;
 
   public RobotContainer() {
     // Initialize subsystems.
@@ -55,10 +57,22 @@ public class RobotContainer {
     // Configure button bindings.
     configureButtonBindings();
 
+    // Configure dashboard inputs.
+    alignment = new LoggedDashboardChooser<>("Dashboard/alignment", new SendableChooser<Boolean>());
+    alignment.addDefaultOption("Required", true);
+    alignment.addOption("Supersede",      false);
+    // TODO: Add on-change method for alignment requirement.
+
+    localization = new LoggedDashboardChooser<>("Dashboard/localization", new SendableChooser<Boolean>());
+    localization.addDefaultOption("Enabled", true);
+    localization.addOption("Disabled",      false);
+    localization.onChange(v -> vision.setEnabled(v));
+
     // Declare pathplanner events.
     final Command stopDrive = Commands.runOnce(() -> drive.stop());
     final Command lockDrive = Commands.runOnce(() -> drive.stopWithX());
 
+    // Autonomous
     if (!Constants.mode.equals(Mode.COMPETITION)) {
 
       // Create autonomous selector and add options.

@@ -110,6 +110,7 @@ public class Robot extends LoggedRobot {
 
     // Update field visualization.
     field.setRobotPose(container.drive.getPose());
+    container.simulation.tick();
   }
 
   @Override
@@ -137,6 +138,8 @@ public class Robot extends LoggedRobot {
     } else {
       Logger.recordOutput("Robot/AutonomousCommand", "None");
     }
+
+    container.simulation.autonomous();
   }
 
   @Override
