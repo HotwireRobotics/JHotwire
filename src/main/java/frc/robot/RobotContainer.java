@@ -20,6 +20,8 @@ import frc.robot.constants.LimelightHelpers;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.simulation.Handler;
 import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.vision.Vision;
+
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -29,13 +31,26 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 public class RobotContainer {
   // Declare subsystems.
   public final Drive drive;
+  public final Vision vision;
+
+  // Simualtion
+  public final Handler simulation;
 
   // Dashboard inputs
   private final LoggedDashboardChooser<Command> autoChooser;
 
   public RobotContainer() {
     // Initialize subsystems.
-    drive = new Drive(Constants.mode);
+    drive = new Drive();
+    vision = new Vision(
+      drive::getPose, drive::getRotation,
+      drive::addVisionMeasurement);
+
+    // Initialize simulation.
+    if (Constants.mode.equals(Mode.SIM)) simulation = new Handler(
+      () -> RPM.of(1400), () -> true, () -> true, () -> Degrees.of(0),
+      drive::getPose, drive::getChassisSpeeds
+    ); else simulation = new Handler(null, null, null, null, null, null);
 
     // Configure button bindings.
     configureButtonBindings();

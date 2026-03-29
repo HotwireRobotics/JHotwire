@@ -1,11 +1,19 @@
 // Hotwire-Robotics™ : 
 package frc.robot.subsystems.vision;
 
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.ejml.equation.MatrixConstructor;
+
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.Mode;
@@ -29,7 +37,7 @@ public class Vision extends SubsystemBase {
     private final Supplier<Rotation2d> rotation;
 
     // Declare pose estimate consumer.
-    private final Consumer<Pose2d> estimate;
+    private final BiConsumer<PoseEstimate, Matrix<N3, N1>> estimate;
 
     // Subsystem abstraction.
     private final VisionIO io;
@@ -37,7 +45,7 @@ public class Vision extends SubsystemBase {
     public Vision(
         Supplier<Pose2d>     location,
         Supplier<Rotation2d> rotation,
-        Consumer<Pose2d>     estimate
+        BiConsumer<PoseEstimate, Matrix<N3, N1>> estimate
     ) {
         // Initialize abstraction
         io = Constants.mode.equals(Mode.SIM) 
@@ -57,8 +65,8 @@ public class Vision extends SubsystemBase {
      * 
      * @param pose
      */
-    private void supply(Pose2d pose) {
-        estimate.accept(pose);
+    private void supply(PoseEstimate estimation, Matrix<N3, N1> devs) {
+        estimate.accept(estimation, devs);
     }
 
     /**
@@ -88,17 +96,24 @@ public class Vision extends SubsystemBase {
      * @return
      */
     public boolean isValidEstimate(Measurement estimation) {
+        // Trash empty measurements.
         if (estimation == null) return false;
-        return ((estimation.count > 0)
-            && (estimation.distance <= Configuration.maxDistance.in(Meters)));
+
+        // Trash invalid measurements.
+        return (estimation.count > 0);
     }
 
     @Override
     public void periodic() {
         // Get a pose estimate from the camera.
-        Measurement measurement = io.getMeasurement();
+        List<Measurement> measurements = io.getMeasurements();
 
-        // Supply a pose estimate to the drivetrain.
-        if (isValidEstimate(measurement)) supply(measurement.pose);
+        // Trash empty measurements.
+        if (measurements == null) return;
+
+        // Supply pose estimates to the drivetrain.
+        measurements.stream()
+            .filter(m -> isValidEstimate(m))
+            .forEach(m -> supply(m.est, m.devs));
     }
 }
