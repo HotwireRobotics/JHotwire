@@ -1,5 +1,5 @@
 // https://github.com/hammerheads5000/FuelSim
-package frc.robot.simulation;
+package frc.robot._simulation;
 
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;

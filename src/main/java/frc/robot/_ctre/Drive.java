@@ -1,4 +1,4 @@
-package frc.robot.ctre;
+package frc.robot._ctre;
 
 import static edu.wpi.first.units.Units.*;
 
@@ -30,11 +30,14 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot._ctre.GyroIO;
+import frc.robot._ctre.ModuleIO;
+import frc.robot._ctre.generated.TunerConstants;
 import frc.robot.constants.Constants;
 import frc.robot.constants.Field;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.constants.LimelightHelpers.PoseEstimate;
-import frc.robot.generated.TunerConstants;
+import frc.robot.ctre.GyroIOInputsAutoLogged;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;

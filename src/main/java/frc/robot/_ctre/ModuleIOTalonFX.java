@@ -1,4 +1,4 @@
-package frc.robot.ctre;
+package frc.robot._ctre;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
@@ -25,9 +25,9 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
-import frc.robot.generated.TunerConstants;
+import frc.robot._ctre.generated.TunerConstants;
 
-import static frc.robot.ctre.PhoenixUtil.*;
+import static frc.robot._ctre.PhoenixUtil.*;
 
 import java.util.Queue;
 

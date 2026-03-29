@@ -1,4 +1,4 @@
-package frc.robot.ctre;
+package frc.robot._ctre;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
@@ -9,7 +9,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
-import frc.robot.generated.TunerConstants;
+import frc.robot._ctre.generated.TunerConstants;
+
 import java.util.Queue;
 
 /** IO implementation for Pigeon 2. */

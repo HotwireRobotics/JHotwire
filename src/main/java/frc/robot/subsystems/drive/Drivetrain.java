@@ -1,5 +1,12 @@
 package frc.robot.subsystems.drive;
 
-import frc.robot.ctre.Drive;
+import frc.robot._ctre.Drive;
 
-public class Drivetrain extends Drive {}
+/**
+ * <strong>Drive Subsystem</strong>
+ * <p>Dependent subsystem for the CTR Electronics drivetrain 
+ * components with added methods for better integration.
+ */
+public class Drivetrain extends Drive {
+
+}

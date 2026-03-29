@@ -1,4 +1,4 @@
-package frc.robot.ctre;
+package frc.robot._ctre;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import org.littletonrobotics.junction.AutoLog;
