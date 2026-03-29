@@ -1,0 +1,57 @@
+{
+	"wakeword_name": "hey_jarvis",
+	"wakeword_threshold": 0.5,
+	"wakeword_model_path": null,
+	"sample_rate_hz": 16000,
+	"chunk_size": 1280,
+	"post_wake_record_seconds": 4.0,
+	"loop_sleep_seconds": 0.05,
+	"command_cooldown_seconds": 2.0,
+	"commands": [
+		{
+			"name": "launch simulation",
+			"phrases": [
+				"launch simulation",
+				"run simulation",
+				"start simulation"
+			],
+			"command": [
+				"powershell",
+				"-NoProfile",
+				"-Command",
+				"./gradlew.bat simulateJava"
+			],
+			"working_directory": "."
+		},
+		{
+			"name": "deploy code",
+			"phrases": [
+				"deploy code",
+				"deploy robot code",
+				"deploy to robot"
+			],
+			"command": [
+				"powershell",
+				"-NoProfile",
+				"-Command",
+				"./gradlew.bat deploy"
+			],
+			"working_directory": "."
+		},
+		{
+			"name": "build code",
+			"phrases": [
+				"build code",
+				"compile robot code"
+			],
+			"command": [
+				"powershell",
+				"-NoProfile",
+				"-Command",
+				"./gradlew.bat build"
+			],
+			"working_directory": "."
+		}
+	]
+}
+
