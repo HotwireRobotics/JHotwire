@@ -1,4 +1,4 @@
-package frc.robot._simulation;
+package frc.robot.applicable.simulation;
 
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;

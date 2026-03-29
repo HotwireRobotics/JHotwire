@@ -1,4 +1,4 @@
-package frc.robot._ctre;
+package frc.robot.applicable.ctre;
 
 // import com.studica.frc.AHRS;
 // import com.studica.frc.AHRS.NavXComType;

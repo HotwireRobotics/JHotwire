@@ -1,4 +1,4 @@
-package frc.robot._ctre;
+package frc.robot.applicable.ctre;
 
 import static edu.wpi.first.units.Units.Radians;
 

@@ -1,4 +1,4 @@
-package frc.robot._ctre;
+package frc.robot.applicable.ctre;
 
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -9,7 +9,6 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
-import frc.robot.ctre.ModuleIOInputsAutoLogged;
 
 import org.littletonrobotics.junction.Logger;
 

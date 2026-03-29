@@ -1,4 +1,4 @@
-package frc.robot._ctre;
+package frc.robot.applicable.ctre;
 
 import com.ctre.phoenix6.StatusCode;
 import java.util.function.Supplier;
