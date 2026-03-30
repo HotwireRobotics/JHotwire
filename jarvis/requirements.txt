@@ -1,6 +1,0 @@
-openai-whisper
-openwakeword
-sounddevice
-numpy
-onnxruntime
-pynetworktables
