@@ -17,7 +17,7 @@
 		"wakeword_inference_framework": "onnx",
 		"sample_rate_hz": 16000,
 		"chunk_size": 1280,
-		"post_wake_record_seconds": 4.0,
+		"post_wake_record_seconds": 2.0,
 		"loop_sleep_seconds": 0.05,
 		"whisper_model": "base",
 		"whisper_device": "cpu",
