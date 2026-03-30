@@ -6,6 +6,8 @@ from pathlib import Path
 import threading
 import time
 
+import numpy as np
+
 from helix.actions import ActionRunner, RunContext
 from helix.audio import Microphone, WakewordDetector
 from helix.config import HelixConfig
@@ -17,11 +19,12 @@ from helix.transcribe import WhisperTranscriber
 class HelixSubsystem:
 	"""Coordinates text input, optional wakeword voice, and execution."""
 
-	def __init__(self, config: HelixConfig, workspace_root: Path) -> None:
+	def __init__(self, config: HelixConfig, workspace_root: Path, *, voice_debug: bool = False) -> None:
 		"""Construct HELIX dependencies."""
 
 		self._config = config
 		self._workspace_root = workspace_root
+		self._voice_debug = voice_debug
 		self._router = CommandRouter(config.commands)
 		self._runner = ActionRunner(
 			workspace_root=workspace_root,
@@ -34,16 +37,35 @@ class HelixSubsystem:
 		self._microphone: Microphone | None = None
 		self._detector: WakewordDetector | None = None
 		self._transcriber: WhisperTranscriber | None = None
+		self._transcriber_lock = threading.Lock()
 		self._shutdown = False
 		self._operation_lock = threading.Lock()
 
 		if self._voice_enabled and config.voice.wakeword_strategy != "disabled":
 			self._microphone = Microphone(config.voice)
 			self._detector = WakewordDetector(config.voice)
-			self._transcriber = WhisperTranscriber(config.voice)
+			# Whisper loads lazily so the wakeword loop can start immediately (mic-check never loads it).
 			self._voice_ready = True
 		elif self._voice_enabled:
 			print("[helix] Voice mode requested but wakeword strategy is disabled.")
+
+	def _ensure_transcriber(self) -> WhisperTranscriber:
+		"""Load local Whisper on first use so startup does not block wakeword listening."""
+
+		with self._transcriber_lock:
+			if self._transcriber is None:
+				self._transcriber = WhisperTranscriber(self._config.voice)
+			return self._transcriber
+
+	def _warmup_wakeword_engine(self) -> None:
+		"""Advance openWakeWord internal state; the first ~5 frames are forced to score 0 by the library."""
+
+		assert self._detector is not None
+		self._detector.reset()
+		silence = np.zeros(self._config.voice.chunk_size, dtype=np.int16)
+		for _ in range(5):
+			self._detector.streaming_gate_score(silence)
+		self._detector.clear_streaming_window()
 
 	def _run_named_command(self, command_name: str) -> None:
 		"""Run a configured command by exact name."""
@@ -123,32 +145,46 @@ class HelixSubsystem:
 
 		assert self._microphone is not None
 		assert self._detector is not None
-		assert self._transcriber is not None
 		win = self._config.voice.wakeword_score_window_chunks
 		print(
 			"[helix] Realtime voice: continuous mic stream, waiting for wakeword "
-			f"(scores use a rolling window of {win} chunks).",
+			f"(rolling window {win} chunks). Whisper loads on first command after wake.",
 			flush=True,
 		)
-		while not self._shutdown:
-			chunk = self._microphone.read_chunk()
-			if not self._detector.is_wakeword_detected(chunk):
-				if self._config.voice.loop_sleep_seconds > 0:
-					time.sleep(self._config.voice.loop_sleep_seconds)
-				continue
-			self._detector.clear_streaming_window()
-			print("[helix] Wakeword detected. Listening for command...", flush=True)
-			audio = self._microphone.record_utterance()
-			transcript = self._transcriber.transcribe(
-				audio=audio,
-				sample_rate_hz=self._config.voice.sample_rate_hz,
-			).strip()
-			# Always echo the transcribed phrase so the operator sees what was understood.
-			print(f"[helix] Heard: {transcript!r}", flush=True)
-			if not transcript:
-				print("[helix] (empty transcript — try speaking closer or check the mic.)", flush=True)
-				continue
-			self._process_text(transcript, invoked_from_text=False)
+		self._warmup_wakeword_engine()
+		print("[helix] Wakeword engine ready (cold-start frames flushed).", flush=True)
+		last_dbg = time.monotonic()
+		try:
+			while not self._shutdown:
+				chunk = self._microphone.read_chunk()
+				hit = self._detector.is_wakeword_detected(chunk)
+				if self._voice_debug:
+					now = time.monotonic()
+					if now - last_dbg >= 1.0:
+						th = self._config.voice.wakeword_threshold
+						sm = self._detector.last_smoothed_score
+						print(f"[helix] voice-debug: smooth={sm:.3f} thr={th}", flush=True)
+						last_dbg = now
+				if not hit:
+					if self._config.voice.loop_sleep_seconds > 0:
+						time.sleep(self._config.voice.loop_sleep_seconds)
+					continue
+				self._detector.clear_streaming_window()
+				print("[helix] Wakeword detected. Listening for command...", flush=True)
+				audio = self._microphone.record_utterance()
+				transcript = self._ensure_transcriber().transcribe(
+					audio=audio,
+					sample_rate_hz=self._config.voice.sample_rate_hz,
+				).strip()
+				# Always echo the transcribed phrase so the operator sees what was understood.
+				print(f"[helix] Heard: {transcript!r}", flush=True)
+				if not transcript:
+					print("[helix] (empty transcript — try speaking closer or check the mic.)", flush=True)
+					continue
+				self._process_text(transcript, invoked_from_text=False)
+		finally:
+			if self._microphone is not None:
+				self._microphone.close()
 
 	def _text_loop(self) -> None:
 		"""Run text input loop."""

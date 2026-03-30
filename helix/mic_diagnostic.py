@@ -157,7 +157,7 @@ def run_mic_diagnostic(voice: VoiceConfig) -> None:
 	elif detector is not None and phrase_max >= 0.15:
 		print(
 			"[helix] RESULT: Phrase test shows a weak wakeword signal. Try mic_gain, OS level, "
-			"or voice.wakeword_threshold around 0.35."
+			"or try a slightly lower wakeword_threshold (not below ~0.45 if you get TV false wakes)."
 		)
 	elif peak_dbfs < -60.0 and phrase_max < 0.15:
 		print(
@@ -167,7 +167,7 @@ def run_mic_diagnostic(voice: VoiceConfig) -> None:
 	elif peak_dbfs < -50.0 and phrase_max < 0.15:
 		print(
 			"[helix] RESULT: Levels are borderline. Increase mic_gain or OS level, say \"Hey Jarvis\" "
-			"close to the mic, or try voice.wakeword_threshold around 0.35."
+			"close to the mic, or slightly lower wakeword_threshold (raise it if background audio triggers wakes)."
 		)
 	elif detector is not None and phrase_max < 0.1 and peak_dbfs >= -50.0:
 		print(

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import time
 from collections import deque
 from typing import Any
 
@@ -28,6 +27,7 @@ class WakewordDetector:
 		self._model = self._build_model(voice)
 		# Rolling max over recent chunk scores so live detection matches multi-frame phrase tests.
 		self._score_ring: deque[float] = deque(maxlen=max(1, voice.wakeword_score_window_chunks))
+		self._last_smoothed: float = 0.0
 
 	def _effective_model_name(self, voice: VoiceConfig) -> str:
 		"""Get the effective wakeword model key."""
@@ -143,7 +143,15 @@ class WakewordDetector:
 
 		s = self.wakeword_score(audio_chunk)
 		self._score_ring.append(s)
-		return max(self._score_ring)
+		smoothed = max(self._score_ring)
+		self._last_smoothed = smoothed
+		return smoothed
+
+	@property
+	def last_smoothed_score(self) -> float:
+		"""Most recent rolling-max score (for diagnostics)."""
+
+		return self._last_smoothed
 
 	def clear_streaming_window(self) -> None:
 		"""Clear rolling scores after a wake trigger so the same phrase does not re-fire."""
@@ -177,12 +185,18 @@ class WakewordDetector:
 
 
 class Microphone:
-	"""Provides fixed-rate microphone reads compatible with openwakeword."""
+	"""Provides fixed-rate microphone reads compatible with openwakeword.
+
+	Uses one long-lived InputStream so chunks are gapless. Repeated sd.rec() opens short
+	captures and breaks openWakeWord's streaming preprocessor (mic-check phrase test still
+	works because predict_clip feeds contiguous synthetic chunks).
+	"""
 
 	def __init__(self, voice: VoiceConfig) -> None:
 		"""Initialize microphone settings from voice configuration."""
 
 		self._voice = voice
+		self._stream: sd.InputStream | None = None
 
 	def _apply_gain(self, audio: np.ndarray) -> np.ndarray:
 		"""Scale int16 PCM by voice.mic_gain (helps quiet laptop mics)."""
@@ -194,40 +208,60 @@ class Microphone:
 		out = np.clip(flat.astype(np.float32) * g, -32768.0, 32767.0).astype(np.int16)
 		return np.squeeze(out)
 
-	def _rec_kwargs(self) -> dict[str, Any]:
-		"""Common sounddevice.rec options, including optional explicit input device."""
+	def _open_stream(self) -> None:
+		"""Start a single continuous input stream (idempotent)."""
 
-		kw: dict[str, Any] = {}
+		if self._stream is not None:
+			return
+		kw: dict[str, Any] = dict(
+			samplerate=self._voice.sample_rate_hz,
+			channels=1,
+			dtype="int16",
+			blocksize=self._voice.chunk_size,
+			latency="low",
+		)
 		if self._voice.input_device is not None:
 			kw["device"] = self._voice.input_device
-		return kw
+		self._stream = sd.InputStream(**kw)
+		self._stream.start()
+
+	def close(self) -> None:
+		"""Stop and release the input stream."""
+
+		if self._stream is None:
+			return
+		self._stream.stop()
+		self._stream.close()
+		self._stream = None
 
 	def read_chunk(self) -> np.ndarray:
-		"""Capture a single mono audio chunk as int16."""
+		"""Capture a single mono audio chunk as int16 from the continuous stream."""
 
-		audio = sd.rec(
-			frames=self._voice.chunk_size,
-			samplerate=self._voice.sample_rate_hz,
-			channels=1,
-			dtype="int16",
-			blocking=True,
-			**self._rec_kwargs(),
-		)
-		return self._apply_gain(np.squeeze(audio))
+		self._open_stream()
+		assert self._stream is not None
+		data, overflowed = self._stream.read(self._voice.chunk_size)
+		if overflowed:
+			print("[helix] Audio input overflow (CPU too slow); wakeword may miss speech.", flush=True)
+		arr = np.asarray(data, dtype=np.int16).squeeze()
+		return self._apply_gain(arr)
 
 	def record_utterance(self, seconds: float | None = None) -> np.ndarray:
-		"""Record a short utterance after wakeword detection."""
+		"""Record a short utterance on the same stream so timing stays contiguous."""
 
+		self._open_stream()
+		assert self._stream is not None
 		duration = seconds if seconds is not None else self._voice.post_wake_record_seconds
-		frames = int(duration * self._voice.sample_rate_hz)
-		audio = sd.rec(
-			frames=frames,
-			samplerate=self._voice.sample_rate_hz,
-			channels=1,
-			dtype="int16",
-			blocking=True,
-			**self._rec_kwargs(),
-		)
-		time.sleep(0.02)
-		return self._apply_gain(np.squeeze(audio))
+		total = int(duration * self._voice.sample_rate_hz)
+		cs = self._voice.chunk_size
+		parts: list[np.ndarray] = []
+		remaining = total
+		while remaining > 0:
+			n = min(cs, remaining)
+			data, overflowed = self._stream.read(n)
+			if overflowed:
+				print("[helix] Audio overflow during command capture.", flush=True)
+			parts.append(np.asarray(data, dtype=np.int16).squeeze())
+			remaining -= n
+		audio = np.concatenate(parts) if len(parts) > 1 else parts[0]
+		return self._apply_gain(audio)
 

@@ -31,7 +31,8 @@ class VoiceConfig:
 	wakeword_strategy: WakewordStrategy = "hey_jarvis"
 	wakeword_name: str = "hey_jarvis"
 	wakeword_model_path: str | None = None
-	wakeword_threshold: float = 0.5
+	# Higher = fewer false wakes (TV/room noise); lower if real "Hey Jarvis" is often missed.
+	wakeword_threshold: float = 0.55
 	# Live wakeword uses max score over the last N chunks (~80ms each). predict_clip peaks across a phrase;
 	# single chunks often score lower, so 1 = strict per-chunk only; 12-20 matches real-time behavior to mic-check.
 	wakeword_score_window_chunks: int = 16
@@ -212,7 +213,7 @@ def _parse_voice(raw: dict[str, Any]) -> VoiceConfig:
 		wakeword_strategy=strategy,  # type: ignore[arg-type]
 		wakeword_name=wakeword_name,
 		wakeword_model_path=wakeword_model_path,
-		wakeword_threshold=float(raw.get("wakeword_threshold", 0.5)),
+		wakeword_threshold=float(raw.get("wakeword_threshold", 0.55)),
 		wakeword_score_window_chunks=win,
 		wakeword_inference_framework=str(raw.get("wakeword_inference_framework", "onnx")).strip().lower(),
 		sample_rate_hz=int(raw.get("sample_rate_hz", 16000)),

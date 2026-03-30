@@ -13,7 +13,7 @@
 		"wakeword_strategy": "hey_jarvis",
 		"wakeword_name": "hey_jarvis",
 		"wakeword_model_path": null,
-		"wakeword_threshold": 0.5,
+		"wakeword_threshold": 0.55,
 		"wakeword_score_window_chunks": 16,
 		"wakeword_inference_framework": "onnx",
 		"sample_rate_hz": 16000,

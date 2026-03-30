@@ -39,6 +39,11 @@ def build_parser() -> argparse.ArgumentParser:
 		metavar="N",
 		help="sounddevice capture device index (overrides voice.input_device in config). See device list from --mic-check.",
 	)
+	parser.add_argument(
+		"--voice-debug",
+		action="store_true",
+		help="Print rolling wakeword score vs threshold once per second (voice/both modes).",
+	)
 	return parser
 
 
@@ -55,7 +60,7 @@ def main() -> None:
 		return
 	config = replace(config, voice=voice)
 	workspace_root = Path(args.workspace_root).resolve()
-	helix = HelixSubsystem(config=config, workspace_root=workspace_root)
+	helix = HelixSubsystem(config=config, workspace_root=workspace_root, voice_debug=args.voice_debug)
 	helix.run_forever()
 
 
