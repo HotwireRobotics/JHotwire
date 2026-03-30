@@ -124,12 +124,19 @@ class HelixSubsystem:
 		assert self._microphone is not None
 		assert self._detector is not None
 		assert self._transcriber is not None
-		print("[helix] Voice loop active. Listening for wakeword...")
+		win = self._config.voice.wakeword_score_window_chunks
+		print(
+			"[helix] Realtime voice: continuous mic stream, waiting for wakeword "
+			f"(scores use a rolling window of {win} chunks).",
+			flush=True,
+		)
 		while not self._shutdown:
 			chunk = self._microphone.read_chunk()
 			if not self._detector.is_wakeword_detected(chunk):
-				time.sleep(self._config.voice.loop_sleep_seconds)
+				if self._config.voice.loop_sleep_seconds > 0:
+					time.sleep(self._config.voice.loop_sleep_seconds)
 				continue
+			self._detector.clear_streaming_window()
 			print("[helix] Wakeword detected. Listening for command...", flush=True)
 			audio = self._microphone.record_utterance()
 			transcript = self._transcriber.transcribe(
@@ -159,7 +166,7 @@ class HelixSubsystem:
 		"""Run HELIX according to configured control mode."""
 
 		mode = self._config.control_mode
-		print(f"[helix] Starting in control_mode={mode}")
+		print(f"[helix] Starting in control_mode={mode}", flush=True)
 		if mode == "voice":
 			if not self._voice_ready:
 				raise RuntimeError("Voice mode configured, but voice components are not ready.")

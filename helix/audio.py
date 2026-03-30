@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import time
+from collections import deque
 from typing import Any
 
 import numpy as np
@@ -25,6 +26,8 @@ class WakewordDetector:
 			raise RuntimeError("Voice wakeword is disabled in config.")
 		self._voice = voice
 		self._model = self._build_model(voice)
+		# Rolling max over recent chunk scores so live detection matches multi-frame phrase tests.
+		self._score_ring: deque[float] = deque(maxlen=max(1, voice.wakeword_score_window_chunks))
 
 	def _effective_model_name(self, voice: VoiceConfig) -> str:
 		"""Get the effective wakeword model key."""
@@ -135,15 +138,28 @@ class WakewordDetector:
 		prediction = self._model.predict(audio_chunk)
 		return self._extract_score(prediction)
 
-	def is_wakeword_detected(self, audio_chunk: np.ndarray) -> bool:
-		"""Return True when wakeword confidence exceeds threshold."""
+	def streaming_gate_score(self, audio_chunk: np.ndarray) -> float:
+		"""Append this chunk's score and return the rolling max (matches live trigger logic)."""
 
-		return self.wakeword_score(audio_chunk) >= self._voice.wakeword_threshold
+		s = self.wakeword_score(audio_chunk)
+		self._score_ring.append(s)
+		return max(self._score_ring)
+
+	def clear_streaming_window(self) -> None:
+		"""Clear rolling scores after a wake trigger so the same phrase does not re-fire."""
+
+		self._score_ring.clear()
+
+	def is_wakeword_detected(self, audio_chunk: np.ndarray) -> bool:
+		"""Return True when smoothed wakeword confidence exceeds threshold."""
+
+		return self.streaming_gate_score(audio_chunk) >= self._voice.wakeword_threshold
 
 	def reset(self) -> None:
 		"""Clear openWakeWord internal buffers (call before a fresh clip-based test)."""
 
 		self._model.reset()
+		self._score_ring.clear()
 
 	def wakeword_scores_for_clip(self, audio_int16: np.ndarray) -> list[float]:
 		"""Run predict_clip and return per-chunk scores for the active wakeword model."""

@@ -88,8 +88,8 @@ def run_mic_diagnostic(voice: VoiceConfig) -> None:
 	)
 	print("[helix] Streaming ~8 seconds... (Ctrl+C to stop)\n")
 	print(
-		"[helix] Short chunks can show 0.000 even when you spoke: the phrase may fall across chunks. "
-		"A 4-second phrase test runs after this.\n"
+		"[helix] Column 'smooth' is the rolling max over the last voice.wakeword_score_window_chunks chunks "
+		"(same rule as live HELIX). Raw single-chunk scores can stay low while 'smooth' spikes during the phrase.\n"
 	)
 	print(
 		"[helix] If RMS peaks below about -50 dBFS while speaking, raise OS mic level or set voice.mic_gain (e.g. 4.0).\n"
@@ -105,10 +105,10 @@ def run_mic_diagnostic(voice: VoiceConfig) -> None:
 			rms = _rms_dbfs(chunk)
 			peak_dbfs = max(peak_dbfs, rms)
 			if detector is not None:
-				score = detector.wakeword_score(chunk)
-				max_score = max(max_score, score)
-				hit = " *** HIT ***" if score >= threshold else ""
-				line = f"  RMS {rms:6.1f} dBFS   score {score:.3f} / {threshold}{hit}"
+				smooth = detector.streaming_gate_score(chunk)
+				max_score = max(max_score, smooth)
+				hit = " *** HIT ***" if smooth >= threshold else ""
+				line = f"  RMS {rms:6.1f} dBFS   smooth {smooth:.3f} / {threshold}{hit}"
 			else:
 				line = f"  RMS {rms:6.1f} dBFS   (wakeword model unavailable)"
 			now = time.monotonic()

@@ -32,11 +32,15 @@ class VoiceConfig:
 	wakeword_name: str = "hey_jarvis"
 	wakeword_model_path: str | None = None
 	wakeword_threshold: float = 0.5
+	# Live wakeword uses max score over the last N chunks (~80ms each). predict_clip peaks across a phrase;
+	# single chunks often score lower, so 1 = strict per-chunk only; 12-20 matches real-time behavior to mic-check.
+	wakeword_score_window_chunks: int = 16
 	wakeword_inference_framework: str = "onnx"
 	sample_rate_hz: int = 16000
 	chunk_size: int = 1280
 	post_wake_record_seconds: float = 4.0
-	loop_sleep_seconds: float = 0.05
+	# Extra delay when no wakeword yet (0 = continuous realtime; >0 gaps the stream and can miss phrases).
+	loop_sleep_seconds: float = 0.0
 	# Local Whisper (openai-whisper package): tiny, base, small, medium, large.
 	whisper_model: str = "base"
 	whisper_device: str = "cpu"
@@ -201,16 +205,20 @@ def _parse_voice(raw: dict[str, Any]) -> VoiceConfig:
 	mic_gain = float(raw.get("mic_gain", 1.0))
 	if mic_gain <= 0:
 		raise ValueError("voice.mic_gain must be positive.")
+	win = int(raw.get("wakeword_score_window_chunks", 16))
+	if win < 1:
+		raise ValueError("voice.wakeword_score_window_chunks must be >= 1.")
 	return VoiceConfig(
 		wakeword_strategy=strategy,  # type: ignore[arg-type]
 		wakeword_name=wakeword_name,
 		wakeword_model_path=wakeword_model_path,
 		wakeword_threshold=float(raw.get("wakeword_threshold", 0.5)),
+		wakeword_score_window_chunks=win,
 		wakeword_inference_framework=str(raw.get("wakeword_inference_framework", "onnx")).strip().lower(),
 		sample_rate_hz=int(raw.get("sample_rate_hz", 16000)),
 		chunk_size=int(raw.get("chunk_size", 1280)),
 		post_wake_record_seconds=float(raw.get("post_wake_record_seconds", 4.0)),
-		loop_sleep_seconds=float(raw.get("loop_sleep_seconds", 0.05)),
+		loop_sleep_seconds=float(raw.get("loop_sleep_seconds", 0.0)),
 		whisper_model=str(raw.get("whisper_model", "base")).strip(),
 		whisper_device=str(raw.get("whisper_device", "cpu")).strip().lower(),
 		whisper_download_root=whisper_download_root,
