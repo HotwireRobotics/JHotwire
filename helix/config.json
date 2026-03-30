@@ -37,8 +37,10 @@
 			"command": [
 				"powershell",
 				"-NoProfile",
-				"-Command",
-				"./gradlew.bat simulateJava"
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"helix/scripts/run_wpilib_sim_ds.ps1"
 			],
 			"working_directory": "."
 		},
@@ -85,8 +87,10 @@
 				"command": [
 					"powershell",
 					"-NoProfile",
-					"-Command",
-					"./gradlew.bat simulateJava"
+					"-ExecutionPolicy",
+					"Bypass",
+					"-File",
+					"helix/scripts/run_wpilib_sim_ds.ps1"
 				],
 				"working_directory": ".",
 				"networktables_action": {

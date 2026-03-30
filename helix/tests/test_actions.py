@@ -1,10 +1,16 @@
 """Tests for HELIX command execution helpers."""
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
 
-from helix.actions import _cmd_inner_line, _normalize_gradle_command
+from helix.actions import (
+	_cmd_inner_line,
+	_is_gradle_command,
+	_normalize_gradle_command,
+	_write_pause_runner_bat,
+)
 
 
 class CmdInnerLineTests(unittest.TestCase):
@@ -22,6 +28,50 @@ class CmdInnerLineTests(unittest.TestCase):
 
 		inner = _cmd_inner_line(["powershell", "-Command", "Write-Host hi"])
 		self.assertFalse(inner.lower().startswith("call "))
+
+
+class PauseRunnerBatTests(unittest.TestCase):
+	"""Validates temp runner script used for separate-console pause."""
+
+	def test_runner_contains_call_and_pause(self) -> None:
+		"""Runner bat cds, calls gradlew, then pause."""
+
+		root = tempfile.gettempdir()
+		bat = _write_pause_runner_bat(
+			root,
+			[os.path.join(root, "gradlew.bat"), "simulateJava"],
+		)
+		try:
+			text = Path(bat).read_text(encoding="utf-8")
+			self.assertIn("@echo off", text)
+			self.assertIn("cd /d", text)
+			self.assertIn("call ", text.lower())
+			self.assertIn("pause", text.lower())
+		finally:
+			try:
+				os.unlink(bat)
+			except OSError:
+				pass
+
+
+class GradleDetectTests(unittest.TestCase):
+	"""Driver-station sim script counts as Gradle for workspace cwd + separate console."""
+
+	def test_wpilib_sim_script_is_gradle_like(self) -> None:
+		"""PATH containing run_wpilib_sim_ds.ps1 must match."""
+
+		self.assertTrue(
+			_is_gradle_command(
+				[
+					"powershell",
+					"-NoProfile",
+					"-ExecutionPolicy",
+					"Bypass",
+					"-File",
+					r"helix\scripts\run_wpilib_sim_ds.ps1",
+				]
+			)
+		)
 
 
 class GradleNormalizeTests(unittest.TestCase):

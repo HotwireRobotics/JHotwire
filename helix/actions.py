@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 from helix.config import CommandBinding, ExecutionConfig
@@ -48,10 +50,36 @@ def _cmd_inner_line(cmd: list[str]) -> str:
 	return line
 
 
-def _is_gradle_command(command: list[str]) -> bool:
-	"""Return True if the argv looks like a Gradle / gradlew invocation."""
+def _write_pause_runner_bat(cwd_s: str, cmd: list[str]) -> str:
+	"""Write a helper .bat that cds, runs the command (with call for .bat), then pause.
 
-	return any("gradlew" in part.lower() for part in command)
+	Avoids fragile ``cmd /c "cd ... && ... & pause"`` one-liners that often close instantly.
+	Returns path to the temp file (caller deletes after the child exits).
+	"""
+
+	run_line = _cmd_inner_line(cmd)
+	body = f'@echo off\r\ncd /d "{cwd_s}"\r\n{run_line}\r\npause\r\n'
+	fd, path = tempfile.mkstemp(suffix="_helix_runner.bat")
+	try:
+		with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
+			handle.write(body)
+	except BaseException:
+		try:
+			os.unlink(path)
+		except OSError:
+			pass
+		raise
+	return path
+
+
+def _is_gradle_command(command: list[str]) -> bool:
+	"""Return True if the argv looks like a Gradle / WPILib sim launcher invocation."""
+
+	joined = " ".join(command).lower().replace("\\", "/")
+	if "gradlew" in joined:
+		return True
+	# Scripts that wrap gradlew (Driver Station sim); must count as Gradle for cwd + separate console.
+	return "run_wpilib_sim_ds.ps1" in joined
 
 
 def _normalize_gradle_command(command: list[str], workspace_root: Path) -> tuple[list[str], bool]:
@@ -230,6 +258,7 @@ class ActionRunner:
 				stderr="",
 			)
 
+		runner_bat: str | None = None
 		try:
 			if keep is False:
 				proc = subprocess.Popen(
@@ -241,16 +270,21 @@ class ActionRunner:
 					stdin=subprocess.DEVNULL,
 				)
 			else:
-				# True or "pause": run command, then pause so the window does not vanish immediately.
-				full = f'cd /d "{cwd_s}" && {inner} & pause'
+				# True or "pause": temp runner .bat is reliable; inline cmd /c strings often exit before pause.
+				runner_bat = _write_pause_runner_bat(cwd_s, cmd)
 				proc = subprocess.Popen(
-					["cmd.exe", "/c", full],
+					["cmd.exe", "/c", runner_bat],
 					creationflags=creationflags,
 					stdin=subprocess.DEVNULL,
 					stdout=None,
 					stderr=None,
 				)
 		except OSError as exc:
+			if runner_bat:
+				try:
+					os.unlink(runner_bat)
+				except OSError:
+					pass
 			return ActionResult(
 				success=False,
 				command_name=command_name,
@@ -262,24 +296,31 @@ class ActionRunner:
 		if keep is not False:
 			print("[helix] That window will wait for a key after the command (pause).")
 		heartbeat = self._execution.watch_heartbeat_seconds
-		while True:
-			try:
-				if heartbeat and heartbeat > 0:
-					proc.wait(timeout=heartbeat)
+		try:
+			while True:
+				try:
+					if heartbeat and heartbeat > 0:
+						proc.wait(timeout=heartbeat)
+						break
+					proc.wait()
 					break
-				proc.wait()
-				break
-			except subprocess.TimeoutExpired:
-				print(f"[helix] Still watching PID {proc.pid}...")
-		code = proc.returncode if proc.returncode is not None else -1
-		summary = (
-			f"Separate-console run finished: exit_code={code}. "
-			f"If you used pause, this reflects cmd.exe after you pressed a key."
-		)
-		return ActionResult(
-			success=code == 0,
-			command_name=command_name,
-			exit_code=code,
-			stdout=summary,
-			stderr="",
-		)
+				except subprocess.TimeoutExpired:
+					print(f"[helix] Still watching PID {proc.pid}...")
+			code = proc.returncode if proc.returncode is not None else -1
+			summary = (
+				f"Separate-console run finished: exit_code={code}. "
+				f"If you used pause, this reflects cmd.exe after you pressed a key."
+			)
+			return ActionResult(
+				success=code == 0,
+				command_name=command_name,
+				exit_code=code,
+				stdout=summary,
+				stderr="",
+			)
+		finally:
+			if runner_bat:
+				try:
+					os.unlink(runner_bat)
+				except OSError:
+					pass
