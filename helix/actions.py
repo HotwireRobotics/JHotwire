@@ -31,6 +31,23 @@ class RunContext:
 	invoked_from_text: bool = True
 
 
+def _cmd_inner_line(cmd: list[str]) -> str:
+	"""Build the inner command for cmd.exe /c or /k.
+
+	Windows: running a ``.bat``/``.cmd`` without ``call`` hands execution to that batch file; when it
+	finishes, the parent ``cmd.exe`` can exit before ``pause`` or follow-up commands run. ``call``
+	returns control to the parent so ``pause`` keeps the window open.
+	"""
+
+	line = subprocess.list2cmdline(cmd)
+	if not cmd:
+		return line
+	first = str(cmd[0]).strip().lower()
+	if first.endswith(".bat") or first.endswith(".cmd"):
+		return f"call {line}"
+	return line
+
+
 def _is_gradle_command(command: list[str]) -> bool:
 	"""Return True if the argv looks like a Gradle / gradlew invocation."""
 
@@ -181,12 +198,13 @@ class ActionRunner:
 		keep = self._execution.keep_separate_console_open
 		cwd_s = str(cwd.resolve())
 		line = subprocess.list2cmdline(cmd)
+		inner = _cmd_inner_line(cmd)
 		print(f"[helix] Spawning separate console for '{command_name}' (cwd={cwd_s})...")
 		print(f"[helix] Command: {line}")
 
 		# Persist: cmd /k leaves an interactive shell open; HELIX does not block on it.
 		if keep == "persist":
-			full = f'cd /d "{cwd_s}" && {line}'
+			full = f'cd /d "{cwd_s}" && {inner}'
 			try:
 				proc = subprocess.Popen(
 					["cmd.exe", "/k", full],
@@ -224,7 +242,7 @@ class ActionRunner:
 				)
 			else:
 				# True or "pause": run command, then pause so the window does not vanish immediately.
-				full = f'cd /d "{cwd_s}" && {line} & pause'
+				full = f'cd /d "{cwd_s}" && {inner} & pause'
 				proc = subprocess.Popen(
 					["cmd.exe", "/c", full],
 					creationflags=creationflags,
