@@ -1,5 +1,5 @@
 {
-	"control_mode": "text",
+	"control_mode": "voice",
 	"command_cooldown_seconds": 2.0,
 	"execution": {
 		"text_mode_separate_console": true,
@@ -21,7 +21,9 @@
 		"loop_sleep_seconds": 0.05,
 		"whisper_model": "base",
 		"whisper_device": "cpu",
-		"whisper_download_root": null
+		"whisper_download_root": null,
+		"input_device": null,
+		"mic_gain": 4.0
 	},
 	"commands": [
 		{
@@ -111,3 +113,4 @@
 		]
 	}
 }
+

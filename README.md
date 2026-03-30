@@ -77,12 +77,12 @@ This repository is **Hotwire Robotics (2990)**'s robot code for the 2026 game, *
 - **Simulation:** Not implemented.
 - **PathPlanner paths** live in `src/main/deploy/pathplanner/paths/` and are deployed with the project.
 
-### Jarvis Voice Subsystem (isolated)
+### HELIX Assistant Subsystem (isolated)
 
-- A separate Python subsystem now lives in `jarvis/`.
-- Uses `openwakeword` (`hey_jarvis`) + OpenAI Whisper to turn voice commands into allowlisted actions.
-- Example voice command: "Jarvis, launch simulation" -> runs configured simulation command.
-- Setup + usage live in `jarvis/README.md`.
+- A separate Python subsystem now lives in `helix/`.
+- HELIX = **Heuristic Engine for Logging, Integration, and X-ecution**.
+- Supports text-first operation, optional voice activation, and guided systems checks.
+- Setup + usage live in `helix/README.md`.
 
 ### Key Paths/autos
 

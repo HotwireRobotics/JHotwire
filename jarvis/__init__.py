@@ -1,2 +1,4 @@
-"""Jarvis voice assistant subsystem for robot operations."""
+"""Compatibility package forwarding Jarvis imports to HELIX."""
+
+from helix import *  # noqa: F403
 
