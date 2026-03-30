@@ -14,14 +14,23 @@ pg.mixer.init()
 base: str = os.path.dirname(os.path.abspath(__file__))
 deploy: str = os.path.join(base, "src", "main", "deploy")
 
+# Dashboard state.
+class State(Enum):
+	REAL: int = 0
+	SIM:  int = 1
+	TEST: int = 2
+
 ########################################################################################
+
+# Server target.
+SERVER: str = "1.29.90.10"
+
+# Instanciate state.
+state: State = State.TEST
 
 # Read specific assets.
 sound: pg.Sound = pg.mixer.music.load(os.path.join(base, "assets", "rebuilt.mp3"))
 field: pg.Surface = pg.image.load(os.path.join(base, "assets", "field.png"))
-
-# Server target.
-SERVER: str = "127.0.0.1"
 
 ########################################################################################
 
@@ -31,13 +40,6 @@ FPS: int = 60
 # Window state.
 RUNNING: bool = True
 
-# Dashboard state.
-class State(Enum):
-	REAL: int = 0
-	SIM:  int = 1
-	TEST: int = 2
-# Instanciate state.
-state: State = State.TEST
 
 # Initialize a real server; otherwise, use localhost.
 if (state == State.REAL): NT.initialize(server=SERVER)
@@ -106,34 +108,29 @@ field_image = pgui.elements.UIImage(
 )
 
 # Padding and layout
-padding_top = 15
-field_width = 800
-field_height = 400
-text_width = field_rect.x - 20  # space to the left of field, with 20px margin
-text_height = field_height // 2  # half the height of the field
+text_width = field_rect.x - 20
 
-# Text panel
+# Text panel.
 text_rect = pg.Rect(
-    10,  # 10px from left edge
-    topbar_height + padding_top,
-    text_width,
-    text_height
+    10,
+    topbar_height + 15,
+    text_width, 200
 )
 
 text_panel = pgui.elements.UIPanel(
     relative_rect=text_rect,
     starting_height=0,
     manager=manager,
-    object_id="#field_panel"  # you can create a separate id for styling
+    object_id="#field_panel"
 )
 
-# Text label inside the panel
+# Text label inside the panel.
 match_time_label = pgui.elements.UILabel(
     relative_rect=pg.Rect(0, 0, text_rect.width, text_rect.height),
-    text="0",  # initial value
+    text="0",  # initial value.
     manager=manager,
     container=text_panel,
-    object_id="#field_text"  # for themed borders/text colors
+    object_id="#field_text"
 )
 
 ########################################################################################
@@ -165,6 +162,7 @@ def main() -> None:
 		for event in events:
 			if event.type == pg.QUIT:
 				pg.quit()
+				sys.exit()
 
 		# Update GUI manager.
 		manager.update(dtime)
