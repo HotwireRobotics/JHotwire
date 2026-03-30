@@ -64,7 +64,7 @@ screen = pg.display.set_mode((0, 0))
 screen_width, screen_height = screen.get_size()
 
 # Fill screen.
-size: tuple = (screen_width, int(screen_height * 0.7))
+size: tuple = (screen_width, int(screen_height * 0.75))
 
 # Initialize GUI manager.
 manager: pgui.UIManager = pgui.UIManager(size, os.path.join(base, "theme", "theme.json"))
@@ -156,7 +156,7 @@ def main() -> None:
 	
 
 		# Fill screen.
-		screen.fill((20, 15, 15))
+		screen.fill((43, 43, 43))
 
 		events: list[pg.Event] = pg.event.get()
 		for event in events:
