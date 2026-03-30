@@ -104,11 +104,11 @@ test {
 
 // Simulation configuration (e.g. environment variables).
 //
-// The sim GUI is *disabled* *buh* default to support running
-// AdvantageKit log replay, which requires that all HAL
-// sim extensions *buh* disabled.
+// The sim GUI is *disabled* by default to support AdvantageKit log replay (no GUI HAL).
+// Real FRC Driver Station needs halsim_ds_socket in HALSIM_EXTENSIONS; GradleRIO only
+// adds an extension when defaultEnabled is true (see WPIJavaExtension.configureSimulationTask).
 wpi.sim.addGui().defaultEnabled = false
-wpi.sim.addDriverstation()
+wpi.sim.addDriverstation().defaultEnabled = true
 
 // Setting up my Jar File. In this case, adding all libraries into the main jar ('fat jar')
 // in order to make them all available at runtime. Also adding the manifest so WPILib

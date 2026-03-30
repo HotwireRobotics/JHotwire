@@ -1,7 +1,8 @@
 # HELIX helper: WPILib Java simulation with HAL driver-station socket (see build.gradle: wpi.sim.addDriverstation()).
-# Use the official FRC Driver Station on this PC or another machine; team must match .wpilib/wpilib_preferences.json.
+# Team number must match .wpilib/wpilib_preferences.json (and the Driver Station team field).
 #
-# Typical static IPs (field-style): simulation PC 10.TE.AM.2, Driver Station 10.TE.AM.21 (TE.AM = team, e.g. 2990 -> 10.29.90.x).
+# LOCAL (Driver Station + sim on THIS PC): in Driver Station, point at the robot address 127.0.0.1 or localhost - not 10.x.x.x.
+# REMOTE / field-style LAN only: sim machine often 10.TE.AM.2, Driver Station laptop 10.TE.AM.21 (e.g. team 2990 -> 10.29.90.x).
 # Windows: allow Java through Windows Firewall on Private networks (or run this script once as Administrator for the rule below).
 
 $ErrorActionPreference = 'Continue'
@@ -13,8 +14,9 @@ Set-Location -LiteralPath $RepoRoot
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
 	[Security.Principal.WindowsBuiltInRole]::Administrator
 )
-$java = Get-Command java -ErrorAction SilentlyContinue
-if ($admin -and $java) {
+# One resolved path (Get-Command can return multiple Application entries).
+$java = Get-Command java -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($admin -and $java -and $java.Source) {
 	$existing = Get-NetFirewallRule -DisplayName 'HELIX WPILib Java (sim)' -ErrorAction SilentlyContinue
 	if (-not $existing) {
 		try {
@@ -39,18 +41,25 @@ try {
 
 $pref = Join-Path $RepoRoot '.wpilib\wpilib_preferences.json'
 if (Test-Path -LiteralPath $pref) {
+	# Use -f instead of a long expandable string so parsers do not confuse ()/dots with subexpressions.
 	try {
 		$j = Get-Content -LiteralPath $pref -Raw | ConvertFrom-Json
 		$tn = [int]$j.teamNumber
-		$te = [math]::Floor($tn / 100)
-		$am = $tn % 100
-		Write-Host "[helix] Driver Station team should be $tn (from wpilib_preferences). Typical IPs: sim PC 10.$te.$am.2 , DS 10.$te.$am.21"
+		$tn4 = '{0:D4}' -f $tn
+		$te = [int]$tn4.Substring(0, 2)
+		$am = [int]$tn4.Substring(2, 2)
+		$teamMsg = '[helix] Driver Station team: {0} (wpilib_preferences). LOCAL sim: set robot address to 127.0.0.1 or localhost. Remote LAN example: sim 10.{1}.{2}.2 , DS 10.{1}.{2}.21' -f $tn, $te, $am
+		Write-Host $teamMsg
 	} catch {
-		Write-Host "[helix] Could not read team number from wpilib_preferences.json"
+		Write-Host '[helix] Could not read team number from wpilib_preferences.json'
 	}
 }
 
-Write-Host "[helix] Starting simulateJavaRelease (release desktop JNI + driver-station socket)..."
+Write-Host '[helix] Starting simulateJavaRelease (release desktop JNI + driver-station socket)...'
 $gw = Join-Path $RepoRoot 'gradlew.bat'
 & $gw @('simulateJavaRelease')
-exit $LASTEXITCODE
+$exitCode = 0
+if ($null -ne $LASTEXITCODE) {
+	$exitCode = $LASTEXITCODE
+}
+exit $exitCode
