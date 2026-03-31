@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.subsystems.motors.MotorIO.MotorInputs;
+import frc.robot.subsystems.motors.MotorIO.Setpoint;
 
 import static edu.wpi.first.units.Units.Degrees;
 
@@ -331,6 +332,11 @@ public class Motor {
    */
   public Torque getTorque() {
     return io.getTorque();
+  }
+
+  /** Get the current setpoint of the motor. */
+  public Setpoint getSetpoint() {
+    return io.getSetpoint();
   }
 
   /**

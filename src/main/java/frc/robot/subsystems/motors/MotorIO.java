@@ -1,5 +1,8 @@
 package frc.robot.subsystems.motors;
 
+import java.lang.StackWalker.Option;
+import java.util.Optional;
+
 import org.littletonrobotics.junction.AutoLog;
 
 import edu.wpi.first.units.measure.Angle;
@@ -9,6 +12,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Torque;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.subsystems.motors.MotorIO.Setpoint;
 
 public interface MotorIO {
 
@@ -92,6 +96,40 @@ public interface MotorIO {
 
   /** Get measured torque. */
   Torque getTorque();
+
+
+  /** Setpoint */
+  public static class Setpoint {
+    // Provide constructors for position and velocity setpoints, and suppliers for each.
+    private Angle position;
+    private AngularVelocity velocity;
+
+    public Setpoint(Angle position) {
+      this.position = position;
+    }
+
+    public Setpoint(AngularVelocity velocity) {
+      this.velocity = velocity;
+    }
+
+    public Optional<Angle> getPosition() {
+      return Optional.of(position);
+    }
+
+    public Optional<AngularVelocity> getVelocity() {
+      return Optional.of(velocity);
+    }
+
+    public static Setpoint of(Angle position) {
+      return new Setpoint(position);
+    }
+
+    public static Setpoint of(AngularVelocity velocity) {
+      return new Setpoint(velocity);
+    }
+  }
+  /** Get setpoint. */
+  Setpoint getSetpoint();
 
   /** Get device id. */
   int getID();

@@ -50,6 +50,9 @@ public class Simulated implements MotorIO {
     setCurrentLimit(currentLimit);
   }
 
+  /** Get the current setpoint of the motor. */
+  private Setpoint _target;
+
   /** Set the motor output voltage. */
   @Override
   public void runVoltage(Voltage volts) {
@@ -60,12 +63,14 @@ public class Simulated implements MotorIO {
   @Override
   public void runPosition(Angle position) {
     motor.setControl(positionVoltage.withPosition(position));
+    _target = Setpoint.of(position);
   }
 
   /** Run to velocity. */
   @Override
   public void runVelocity(AngularVelocity velocity) {
     motor.setControl(positionVoltage.withVelocity(velocity));
+    _target = Setpoint.of(velocity);
   }
 
   /** Run at percent. */
@@ -210,6 +215,12 @@ public class Simulated implements MotorIO {
   @Override
   public Torque getTorque() {
     return PoundFoot.of(5.23).times(motor.getSimState().getTorqueCurrentMeasure().in(Amps));
+  }
+
+  /* Get the current setpoint of the motor. */
+  @Override
+  public Setpoint getSetpoint() {
+    return _target;
   }
 
   /** Get device id. */

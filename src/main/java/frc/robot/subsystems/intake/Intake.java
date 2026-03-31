@@ -1,5 +1,10 @@
 package frc.robot.subsystems.intake;
 
+import frc.robot.subsystems.motors.MotorIO.*;
+import frc.robot.subsystems.motors.Motor.Application;
+
+import static edu.wpi.first.units.Units.Amps;
+
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.Mode;
@@ -27,6 +32,7 @@ public class Intake extends SubsystemBase {
   );
 
   // Initialize device representatives.
+  /** Intake rollers. */
   final Motor rollers;
 
   public Intake() {
@@ -36,8 +42,10 @@ public class Intake extends SubsystemBase {
       : new Truthful();
     this.inputs = new IntakeInputs();
 
+    // Configure devices.
     rollers = new Motor(this, Constants.MotorIDs.ROLLERS);
-    rollers.runPercent(0.7);
+    rollers.apply(
+      new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
   }
 
   @Override
