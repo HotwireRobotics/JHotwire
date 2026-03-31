@@ -16,6 +16,26 @@
             "position": [-0.327025, 0, 0.2413],
             "resolution": [640, 480],
             "fov": 54
+        },
+        {
+            "name": "beta",
+            "rotations": [
+                {"axis": "y", "degrees": 0},
+                {"axis": "z", "degrees": 90}
+            ],
+            "position": [-0.0254, 0.3048, 0.503656],
+            "resolution": [640, 480],
+            "fov": 54
+        },
+        {
+            "name": "gamma",
+            "rotations": [
+                {"axis": "y", "degrees": 0},
+                {"axis": "z", "degrees": -90}
+            ],
+            "position": [-0.0254, -0.3048, 0.503656],
+            "resolution": [640, 480],
+            "fov": 54
         }
     ],
     "components": []
