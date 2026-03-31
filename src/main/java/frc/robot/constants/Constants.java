@@ -135,6 +135,38 @@ public final class Constants {
     }
   }
 
+  /**
+     * Determine if the robot is on track for an autonomous victory, based on the first character of
+     * the game-specific message and the alliance color.
+     */
+  public static boolean autonomousVictory() {
+    // Read driverstation.
+    String gameData = DriverStation.getGameSpecificMessage();
+    Boolean allianceIsRed = getAlliance().equals(Alliance.Red);
+
+    // Switch based on game data.
+    if (gameData.length() < 1) return true;
+    switch (gameData.charAt(0)) {
+      case 'R':
+        return (allianceIsRed);
+      case 'B':
+        return (!allianceIsRed);
+      default:
+        return true;
+    }
+  }
+
+  /**
+   * Get the alliance color for this robot.
+   *
+   * @return
+   */
+  public static Alliance getAlliance() {
+    Optional<Alliance> alliance = DriverStation.getAlliance();
+    if (alliance.isEmpty()) return Alliance.Red;
+    return alliance.get();
+  }
+
   public static class Indication {
     /**
      * Creates a solid color control request for the CANdle.
@@ -145,49 +177,6 @@ public final class Constants {
      */
     public static SolidColor LEDColor(int r, int g, int b) {
       return new SolidColor(0, 67).withColor(new RGBWColor(r, g, b));
-    }
-
-    // /**
-    //  * Creates an alternating pattern of x lights on, x lights off; this is offset by p
-    //  *
-    //  * @param r Red
-    //  * @param g Green
-    //  * @param b Blue
-    //  */
-    // public static SolidColor CHASEColor(int r, int g, int b) {
-    //   return new Color
-    // }
-
-    /**
-     * Determine if the robot is on track for an autonomous victory, based on the first character of
-     * the game-specific message and the alliance color.
-     */
-    public static boolean autonomousVictory() {
-      // Read driverstation.
-      String gameData = DriverStation.getGameSpecificMessage();
-      Boolean allianceIsRed = getAlliance().equals(Alliance.Red);
-
-      // Switch based on game data.
-      if (gameData.length() < 1) return true;
-      switch (gameData.charAt(0)) {
-        case 'R':
-          return (allianceIsRed);
-        case 'B':
-          return (!allianceIsRed);
-        default:
-          return true;
-      }
-    }
-
-    /**
-     * Get the alliance color for this robot.
-     *
-     * @return
-     */
-    public static Alliance getAlliance() {
-      Optional<Alliance> alliance = DriverStation.getAlliance();
-      if (alliance.isEmpty()) return Alliance.Red;
-      return alliance.get();
     }
 
     /** Control haptic indicators based on time remaining in the match. */
@@ -322,18 +311,29 @@ public final class Constants {
   }
 
   /**
-   * Motor IDs for all devices, organized by subsystem. These should match values in Phoenix Tuner.
+   * Motor IDs for all devices, organized by subsystem. 
+   * These should match values in Phoenix Tuner.
    */
   public static class MotorIDs {
-    public static final Integer i_rollers = 17;
-    public static final Integer s_feeder = 11;
-    public static final Integer s_shooterR = 12;
-    public static final Integer s_shooterL = 13;
-    public static final Integer h_hopper = 14;
-    public static final Integer i_wristL = 15;
-    public static final Integer i_wristR = 18;
+      // Feeding mechanism.
+    public static final Integer 
+      HOPPER     =  9,
+      // Secondary rollers.
+      FEEDER     = 10,
+      SHOOTER    = 11,
+      // Main shooting array.
+      PRIMARY    = 12,
+      SECONDARY  = 13,
+      TERTIARY   = 14,
+      QUATERNARY = 15,
+      // Intake mechanism.
+      WRIST      = 16,
+      ROLLERS    = 17;
   }
 
+  /**
+   * Path constraints for autonomous routines, used for path generation and following.
+   */
   public static final PathConstraints constraints =
       new PathConstraints(4, 4, Units.degreesToRadians(540), Units.degreesToRadians(720));
 
@@ -348,7 +348,7 @@ public final class Constants {
    * @param pose
    */
   public static Pose2d allianceRelative(Pose2d pose) {
-    if (Constants.Indication.getAlliance().equals(Alliance.Red)) {
+    if (Constants.getAlliance().equals(Alliance.Red)) {
       return pose.rotateAround(middle, Rotation2d.k180deg);
     }
     return pose;
@@ -373,7 +373,7 @@ public final class Constants {
    * @param angle
    */
   public static Angle allianceRelative(Angle angle) {
-    if (Constants.Indication.getAlliance().equals(Alliance.Red)) {
+    if (Constants.getAlliance().equals(Alliance.Red)) {
       return angle.plus(Degrees.of(180));
     }
     return angle;

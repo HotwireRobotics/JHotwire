@@ -1,8 +1,11 @@
 package frc.robot.subsystems.motors;
 
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Temperature;
+import edu.wpi.first.units.measure.Torque;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -268,6 +271,15 @@ public class Motor {
   }
 
   /**
+   * Get the current acceleration of the motor.
+   * 
+   * @return acceleration
+   */
+  public AngularAcceleration getAcceleration() {
+    return io.getAcceleration();
+  }
+
+  /**
    * Get the current position of the motor.
    * 
    * @return position
@@ -283,6 +295,42 @@ public class Motor {
    */
   public Current getCurrent() {
     return io.getCurrent();
+  }
+
+  /**
+   * Get the current stator current of the motor.
+   * 
+   * @return stator current
+   */
+  public Current getStator() {
+    return io.getStator();
+  }
+
+  /**
+   * Get the current temperature of the motor.
+   * 
+   * @return temperature
+   */
+  public Temperature getTemperature() {
+    return io.getTemperature();
+  }
+
+  /**
+   * Get the current supply voltage of the motor.
+   * 
+   * @return voltage
+   */
+  public Voltage getVoltage() {
+    return io.getVoltage();
+  }
+
+  /**
+   * Get the current torque of the motor.
+   * 
+   * @return torque
+   */
+  public Torque getTorque() {
+    return io.getTorque();
   }
 
   /**

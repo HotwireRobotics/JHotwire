@@ -2,6 +2,10 @@ package frc.robot.subsystems.motors;
 
 import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.Celsius;
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.PoundFoot;
+import static edu.wpi.first.units.Units.RPM;
+import static edu.wpi.first.units.Units.RotationsPerSecondPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
@@ -17,8 +21,11 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Temperature;
+import edu.wpi.first.units.measure.Torque;
 import edu.wpi.first.units.measure.Voltage;
 
 public class Simulated implements MotorIO {
@@ -151,28 +158,58 @@ public class Simulated implements MotorIO {
       .withMotorAlignment(value));
   }
 
-   /** Set the motor follower target from id. */
-   @Override
-   public void follow(Motor lead, FollowerMode mode) {
+  /** Set the motor follower target from id. */
+  @Override
+  public void follow(Motor lead, FollowerMode mode) {
     follow(lead.getID(), mode);
-   }
+  }
 
   /** Get measured velocity. */
   @Override
   public AngularVelocity getVelocity() {
-    return null;
+    return RPM.of(0);
+  }
+
+  /** Get measured acceleration. */
+  @Override
+  public AngularAcceleration getAcceleration() {
+    return RotationsPerSecondPerSecond.of(0);
   }
 
   /** Get measured position. */
   @Override
   public Angle getPosition() {
-    return null;
+    return Degrees.of(0);
   }
 
   /** Get measured current. */
   @Override
   public Current getCurrent() {
     return motor.getSimState().getSupplyCurrentMeasure();
+  }
+
+  /** Get measured stator current. */
+  @Override
+  public Current getStator() {
+    return motor.getSimState().getTorqueCurrentMeasure();
+  }
+
+  /** Get measured temperature. */
+  @Override
+  public Temperature getTemperature() {
+    return Celsius.of(10);
+  }
+
+  /** Get measured voltage. */
+  @Override
+  public Voltage getVoltage() {
+    return motor.getSimState().getMotorVoltageMeasure();
+  }
+
+  /** Get measured torque. */
+  @Override
+  public Torque getTorque() {
+    return PoundFoot.of(5.23).times(motor.getSimState().getTorqueCurrentMeasure().in(Amps));
   }
 
   /** Get device id. */

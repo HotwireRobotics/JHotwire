@@ -19,6 +19,7 @@ import frc.robot.constants.Constants.Mode;
 import frc.robot.subsystems.drive.Drivetrain;
 import frc.robot.subsystems.drive.Drivetrain.Side;
 import frc.robot.subsystems.drive.Drivetrain.Zone;
+import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.vision.Vision;
 
 import java.util.function.Supplier;
@@ -30,6 +31,7 @@ public class RobotContainer {
   // Declare subsystems.
   public final Drivetrain drive;
   public final Vision vision;
+  public final Intake intake;
 
   // Simulation.
   public final Handler simulation;
@@ -45,6 +47,7 @@ public class RobotContainer {
     vision = new Vision(
       drive::getPose, drive::getRotation,
       drive::addVisionMeasurement);
+    intake = new Intake();
 
     // Initialize simulation.
     if (Constants.mode.equals(Mode.SIM)) simulation = new Handler(
@@ -159,7 +162,7 @@ public class RobotContainer {
       pointToAngle(this::calculateHubRotation),
       pointToAngle(this::calculatePassingRotation),
       () -> drive.getZone().equals(
-        Constants.Indication.getAlliance()
+        Constants.getAlliance()
           .equals(Alliance.Blue) 
             ? Zone.BLUE 
             : Zone.RED));

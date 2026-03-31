@@ -15,8 +15,11 @@ import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Temperature;
+import edu.wpi.first.units.measure.Torque;
 import edu.wpi.first.units.measure.Voltage;
 
 public class TalonFXIO implements MotorIO {
@@ -162,6 +165,12 @@ public class TalonFXIO implements MotorIO {
     return motor.getVelocity().getValue();
   }
 
+  /** Get measured acceleration. */
+  @Override
+  public AngularAcceleration getAcceleration() {
+    return motor.getAcceleration().getValue();
+  }
+
   /** Get measured position. */
   @Override
   public Angle getPosition() {
@@ -172,6 +181,30 @@ public class TalonFXIO implements MotorIO {
   @Override
   public Current getCurrent() {
     return motor.getSupplyCurrent().getValue();
+  }
+
+  /** Get measured stator current. */
+  @Override
+  public Current getStator() {
+    return motor.getStatorCurrent().getValue();
+  }
+
+  /** Get measured voltage. */
+  @Override
+  public Voltage getVoltage() {
+    return motor.getMotorVoltage().getValue();
+  }
+
+  /** Get measured temperature. */
+  @Override
+  public Temperature getTemperature() {
+    return motor.getDeviceTemp().getValue();
+  }
+
+  /** Get measured torque. */
+  @Override
+  public Torque getTorque() {
+    return NewtonMeters.of(7.16).times(motor.getTorqueCurrent().getValue().in(Amps));
   }
 
   /** Get device id. */

@@ -3,8 +3,11 @@ package frc.robot.subsystems.motors;
 import org.littletonrobotics.junction.AutoLog;
 
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Temperature;
+import edu.wpi.first.units.measure.Torque;
 import edu.wpi.first.units.measure.Voltage;
 
 public interface MotorIO {
@@ -69,11 +72,26 @@ public interface MotorIO {
   /** Get measured velocity. */
   AngularVelocity getVelocity();
 
+  /** Get measured acceleration. */
+  AngularAcceleration getAcceleration();
+
   /** Get measured position. */
   Angle getPosition();
 
   /** Get measured current. */
   Current getCurrent();
+
+  /** Get measured stator current. */
+  Current getStator();
+
+  /** Get measured temperature. */
+  Temperature getTemperature();
+
+  /** Get measured voltage. */
+  Voltage getVoltage();
+
+  /** Get measured torque. */
+  Torque getTorque();
 
   /** Get device id. */
   int getID();
