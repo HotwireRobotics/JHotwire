@@ -51,7 +51,10 @@ public class RobotContainer {
 
     // Initialize simulation.
     if (Constants.mode.equals(Mode.SIM)) simulation = new Handler(
-      () -> RPM.of(1400), () -> true, () -> true, () -> Degrees.of(0),
+      () -> RPM.of(1400), 
+      () -> true, 
+      () -> true, 
+      () -> Degrees.of(0),
       drive::getPose, drive::getChassisSpeeds
     ); else simulation = new Handler(null, null, null, null, null, null);
 

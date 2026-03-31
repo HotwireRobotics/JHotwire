@@ -14,6 +14,11 @@ import frc.robot.subsystems.intake.IntakeIO.IntakeInputs;
 import frc.robot.subsystems.motors.Motor;
 import frc.robot.subsystems.vision.VisionIO.VisionInputs;
 
+/**
+ * <strong>Intake Subsystem</strong>
+ * <p>Subsystem for controlling intake roller
+ * motion.
+ */
 public class Intake extends SubsystemBase {
   
   // Subsystem abstraction.
