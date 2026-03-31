@@ -129,7 +129,7 @@ public interface MotorIO {
     }
   }
   /** Get setpoint. */
-  Setpoint getSetpoint();
+  Optional<Setpoint> getSetpoint();
 
   /** Get device id. */
   int getID();

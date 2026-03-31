@@ -16,6 +16,8 @@ import frc.robot.subsystems.motors.MotorIO.Setpoint;
 
 import static edu.wpi.first.units.Units.Degrees;
 
+import java.util.Optional;
+
 import org.littletonrobotics.junction.Logger;
 
 public class Motor {
@@ -335,7 +337,7 @@ public class Motor {
   }
 
   /** Get the current setpoint of the motor. */
-  public Setpoint getSetpoint() {
+  public Optional<Setpoint> getSetpoint() {
     return io.getSetpoint();
   }
 

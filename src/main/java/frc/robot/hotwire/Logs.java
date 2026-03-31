@@ -9,8 +9,11 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecondPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 
+import java.util.Optional;
+
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.subsystems.motors.Motor;
+import frc.robot.subsystems.motors.MotorIO.Setpoint;
 
 import org.littletonrobotics.junction.Logger;
 
@@ -54,16 +57,23 @@ public class Logs {
         "Motors/" + motor.getSubsystem().getName() + '/' + fix + "/Torque",
         motor.getTorque().in(PoundFoot),
         "lb-ft");
-    Logger.recordOutput(
-        "Motors/" + motor.getSubsystem().getName() + '/' + fix + "/VelocitySetpoint",
-        motor.getSetpoint().getVelocity().isEmpty()
-          ? 0 : motor.getSetpoint().getVelocity().get().in(RotationsPerSecond),
-        "RPS");
-    Logger.recordOutput(
-        "Motors/" + motor.getSubsystem().getName() + '/' + fix + "/PositionSetpoint",
-        motor.getSetpoint().getPosition().isEmpty()
-          ? 0 : motor.getSetpoint().getPosition().get().in(Rotations),
-        "rotations");
+
+    // Log setpoint if it exists.
+    Optional<Setpoint> setpoint = motor.getSetpoint();
+    if (setpoint != null) return;
+
+    if (!setpoint.get().getVelocity().isEmpty()) {
+      Logger.recordOutput(
+          "Motors/" + motor.getSubsystem().getName() + '/' + fix + "/VelocitySetpoint",
+          setpoint.get().getVelocity().get().in(RotationsPerSecond),
+          "RPS");
+    }
+    if (!setpoint.get().getPosition().isEmpty()) {
+      Logger.recordOutput(
+          "Motors/" + motor.getSubsystem().getName() + '/' + fix + "/PositionSetpoint",
+          setpoint.get().getPosition().get().in(Rotations),
+          "rotations");
+    }
   }
 
   public static void log(Motor motor) {

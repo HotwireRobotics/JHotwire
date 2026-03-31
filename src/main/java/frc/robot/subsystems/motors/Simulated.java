@@ -8,6 +8,8 @@ import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.RotationsPerSecondPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 
+import java.util.Optional;
+
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
@@ -51,7 +53,7 @@ public class Simulated implements MotorIO {
   }
 
   /** Get the current setpoint of the motor. */
-  private Setpoint _target;
+  private Optional<Setpoint> _target = Optional.empty();
 
   /** Set the motor output voltage. */
   @Override
@@ -63,14 +65,14 @@ public class Simulated implements MotorIO {
   @Override
   public void runPosition(Angle position) {
     motor.setControl(positionVoltage.withPosition(position));
-    _target = Setpoint.of(position);
+    _target = Optional.of(Setpoint.of(position));
   }
 
   /** Run to velocity. */
   @Override
   public void runVelocity(AngularVelocity velocity) {
     motor.setControl(positionVoltage.withVelocity(velocity));
-    _target = Setpoint.of(velocity);
+    _target = Optional.of(Setpoint.of(velocity));
   }
 
   /** Run at percent. */
@@ -219,7 +221,7 @@ public class Simulated implements MotorIO {
 
   /* Get the current setpoint of the motor. */
   @Override
-  public Setpoint getSetpoint() {
+  public Optional<Setpoint> getSetpoint() {
     return _target;
   }
 
