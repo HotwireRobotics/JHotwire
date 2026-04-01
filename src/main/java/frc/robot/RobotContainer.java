@@ -59,7 +59,9 @@ public class RobotContainer {
 
     // Initialize simulation.
     if (Constants.mode.equals(Mode.SIM)) simulation = new Handler(
-      () -> Constants.Shooter.kSpeed, 
+      () -> {
+        return Constants.regress(Meters.of(drive.getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation())));
+      }, 
       () -> shooter.manager.is(Shooter.State.SHOOTING), 
       () -> intake.manager.is(Intake.State.FORWARD),
       () -> Degrees.of(0),

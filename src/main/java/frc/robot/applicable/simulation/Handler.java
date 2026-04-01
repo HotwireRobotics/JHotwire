@@ -24,7 +24,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Time;
-import frc.robot.applicable.simulation.mechanisms.Model;
+import frc.robot.applicable.simulation.mechanisms.Render;
 import frc.robot.constants.Constants;
 
 public class Handler {
@@ -55,7 +55,7 @@ public class Handler {
     private final Supplier<ChassisSpeeds> chassisSpeeds;
 
     private final Gamepiece gamepieceSimulation;
-    private final Model model;
+    private final Render model;
 
     private final RobotCollisionPhysics physics;
     
@@ -83,7 +83,7 @@ public class Handler {
         this.pose = pose;
         this.chassisSpeeds = chassisSpeeds;
 
-        model = new Model();
+        model = new Render();
         gamepieceSimulation = new Gamepiece();
         gamepieceSimulation.spawnStartingFuel();
 
@@ -119,7 +119,7 @@ public class Handler {
         if (
             ((counter > 0) && ((time.in(Seconds) % ((10 / ((-50 * motion.in(Degrees)) + (3 * counter))))) + (Math.random()/10)) < 0.05)
         ) {
-            gamepieceSimulation.launchFuel(lineate(velocity.get(), Inches.of(1.2)));
+            gamepieceSimulation.launchFuel(lineate(velocity.get(), Constants.Shooter.kWheelRadius));
             counter --;
         }
     }
@@ -152,18 +152,20 @@ public class Handler {
         pitch = pitch.minus(motion);
         
         Pose3d robotPose3d = physics.getRobotPose3d(pose.get());
-        Logger.recordOutput("Simulation/RobotPose3d", robotPose3d);
-        Logger.recordOutput("RobotPose", pose.get());
-        Logger.recordOutput("ZeroedComponentPoses", new Pose3d[] {new Pose3d()});
-        Logger.recordOutput("Components/Intake", new Pose3d[] {
-            new Pose3d(
-                0.1958, 0.0, 0.21, 
-                new Rotation3d(
-                    Rotations.of(0), 
-                    getWristPitch(), 
-                    Rotations.of(0)
-                ))
-        });
+        Logger.recordOutput("Simulation/Pose", robotPose3d);
+        Logger.recordOutput("Simulation/Components/Bumpers", Render.Poses.bumpers);
+        Logger.recordOutput("Simulation/Components/Intake", Render.Poses.intake);
+        // Logger.recordOutput("RobotPose", pose.get());
+        // Logger.recordOutput("ZeroedComponentPoses", new Pose3d[] {new Pose3d()});
+        // Logger.recordOutput("Components/Intake", new Pose3d[] {
+        //     new Pose3d(
+        //         0.1958, 0.0, 0.21, 
+        //         new Rotation3d(
+        //             Rotations.of(0), 
+        //             getWristPitch(), 
+        //             Rotations.of(0)
+        //         ))
+        // });
         physics.resolveFieldBoundaryCollision(pose.get(), chassisSpeeds.get(), supp);
     }
 

@@ -53,7 +53,7 @@ public final class Constants {
     public static final Time kDebounce = Seconds.of(0.18);
 
     // Static target velocities and tolerances.
-    public static final AngularVelocity kSpeed = RPM.of(2400);
+    public static final AngularVelocity kSpeed = RPM.of(2000);
     public static final AngularVelocity kVelocityTolerance = RotationsPerSecond.of(7);
     public static final AngularVelocity kZero = RPM.of(0);
 
@@ -64,7 +64,7 @@ public final class Constants {
     public static final Current kCurrentLimit = Amps.of(80);
 
     // Average wheel radius.
-    public static final Distance kWheelRadius = Inches.of(3);
+    public static final Distance kWheelRadius = Inches.of(1.5);
   }
 
   public static class Intake {
@@ -437,7 +437,7 @@ public final class Constants {
   }
 
   // Derived from relationship between distance (m) and rotation (RPM).
-  public static final double base = 1350.92838;
+  public static final double base = 1000.92838;
   public static final double exponential = 1.00529;
 
   /**
