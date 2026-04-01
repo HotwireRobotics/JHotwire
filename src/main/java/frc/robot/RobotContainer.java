@@ -63,8 +63,8 @@ public class RobotContainer {
       () -> shooter.manager.is(Shooter.State.SHOOTING), 
       () -> intake.manager.is(Intake.State.FORWARD),
       () -> Degrees.of(0),
-      drive::getPose, drive::getChassisSpeeds
-    ); else simulation = new Handler(null, null, null, null, null, null);
+      drive::getPose, drive::getChassisSpeeds, drive::setPose
+    ); else simulation = new Handler(null, null, null, null, null, null, null);
 
     // Configure button bindings.
     configureButtonBindings();
