@@ -119,6 +119,9 @@ public class RobotContainer {
 
     // Tertiary autonomous routine.
     autoChooser.addOption("A-Shoot-Depot", new PathPlannerAuto("A-Shoot-Depot"));
+
+    // Quaternary autonomous routine.
+    autoChooser.addOption("CS-Bineutral", new PathPlannerAuto("CS-Bineutral"));
   }
 
   private void configureButtonBindings() {
