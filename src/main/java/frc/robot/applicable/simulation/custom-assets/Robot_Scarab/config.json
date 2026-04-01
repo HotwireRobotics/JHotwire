@@ -38,5 +38,12 @@
             "fov": 54
         }
     ],
-    "components": []
+    "components": [
+        {
+            "zeroedRotations": [
+                {"axis": "x", "degrees": 90}
+            ],
+            "zeroedPosition": [-0.195, 0, -0.195]
+        }
+    ]
   }

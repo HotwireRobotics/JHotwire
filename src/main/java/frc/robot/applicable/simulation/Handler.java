@@ -24,6 +24,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Time;
+import frc.robot.applicable.simulation.mechanisms.Model;
 import frc.robot.constants.Constants;
 
 public class Handler {
@@ -54,6 +55,7 @@ public class Handler {
     private final Supplier<ChassisSpeeds> chassisSpeeds;
 
     private final Gamepiece gamepieceSimulation;
+    private final Model model;
 
     private final RobotCollisionPhysics physics;
     
@@ -81,6 +83,7 @@ public class Handler {
         this.pose = pose;
         this.chassisSpeeds = chassisSpeeds;
 
+        model = new Model();
         gamepieceSimulation = new Gamepiece();
         gamepieceSimulation.spawnStartingFuel();
 
