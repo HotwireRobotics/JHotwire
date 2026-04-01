@@ -1,6 +1,11 @@
 package frc.robot.hotwire;
 
+import java.util.function.Supplier;
+
 import org.littletonrobotics.junction.Logger;
+
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 
 public class StateManager<T extends Enum<T>> {
 
@@ -17,6 +22,18 @@ public class StateManager<T extends Enum<T>> {
       state = newState;
       Logger.recordOutput(name + "/State", state.toString());
     }
+  }
+
+  public Command tag(T newState) {
+    return Commands.runOnce(() -> set(newState));
+  }
+
+  public Command tag(Supplier<T> newStateSupplier) {
+    return Commands.run(() -> set(newStateSupplier.get()));
+  }
+
+  public boolean is(T query) {
+    return state == query;
   }
 
   public T get() {

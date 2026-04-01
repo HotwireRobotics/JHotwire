@@ -57,27 +57,27 @@ public class Simulated implements MotorIO {
 
   /** Set the motor output voltage. */
   @Override
-  public void runVoltage(Voltage volts) {
+  public void putVoltage(Voltage volts) {
     motor.setControl(voltageOut.withOutput(volts.in(Volts)));
   }
 
   /** Run to position. */
   @Override
-  public void runPosition(Angle position) {
+  public void putPosition(Angle position) {
     motor.setControl(positionVoltage.withPosition(position));
     _target = Optional.of(Setpoint.of(position));
   }
 
   /** Run to velocity. */
   @Override
-  public void runVelocity(AngularVelocity velocity) {
+  public void putVelocity(AngularVelocity velocity) {
     motor.setControl(positionVoltage.withVelocity(velocity));
     _target = Optional.of(Setpoint.of(velocity));
   }
 
   /** Run at percent. */
   @Override
-  public void runPercent(double percent) {
+  public void putPercent(double percent) {
     motor.set(percent);
   }
 

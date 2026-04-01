@@ -17,7 +17,7 @@ import frc.robot.subsystems.motors.MotorIO.Setpoint;
 public interface MotorIO {
 
   /** Set output voltage */
-  void runVoltage(Voltage volts);
+  void putVoltage(Voltage volts);
 
   /** Stop motor */
   void stop();
@@ -65,13 +65,13 @@ public interface MotorIO {
   void configureAcceleration(double kA);
 
   /** Run to position. */
-  void runPosition(Angle position);
+  void putPosition(Angle position);
 
   /** Run to velocity. */
-  void runVelocity(AngularVelocity velocity);
+  void putVelocity(AngularVelocity velocity);
 
   /** Run to percent. */
-  void runPercent(double percent);
+  void putPercent(double percent);
 
   /** Get measured velocity. */
   AngularVelocity getVelocity();

@@ -15,12 +15,15 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.applicable.ctre.DriveCommands;
 import frc.robot.applicable.simulation.Handler;
 import frc.robot.constants.Constants;
+import frc.robot.constants.Constants.Joysticks;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.subsystems.drive.Drivetrain;
 import frc.robot.subsystems.drive.Drivetrain.Side;
 import frc.robot.subsystems.drive.Drivetrain.Zone;
 import frc.robot.subsystems.intake.Intake;
+import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.vision.Vision;
+import frc.robot.constants.Constants.Joysticks.*;
 
 import java.util.function.Supplier;
 
@@ -32,6 +35,7 @@ public class RobotContainer {
   public final Drivetrain drive;
   public final Vision vision;
   public final Intake intake;
+  public final Shooter shooter;
 
   // Simulation.
   public final Handler simulation;
@@ -43,17 +47,21 @@ public class RobotContainer {
 
   public RobotContainer() {
     // Initialize subsystems.
-    drive = new Drivetrain();
+    drive = new Drivetrain(
+      Joysticks.driver.x());
+    shooter = new Shooter(
+      Joysticks.driver.rightBumper());
     vision = new Vision(
       drive::getPose, drive::getRotation,
       drive::addVisionMeasurement);
-    intake = new Intake();
+    intake = new Intake(
+      Joysticks.driver.leftTrigger());
 
     // Initialize simulation.
     if (Constants.mode.equals(Mode.SIM)) simulation = new Handler(
-      () -> RPM.of(1400), 
-      () -> true, 
-      () -> true, 
+      () -> Constants.Shooter.kSpeed, 
+      () -> shooter.manager.is(Shooter.State.SHOOTING), 
+      () -> intake.manager.is(Intake.State.FORWARD),
       () -> Degrees.of(0),
       drive::getPose, drive::getChassisSpeeds
     ); else simulation = new Handler(null, null, null, null, null, null);
@@ -113,77 +121,6 @@ public class RobotContainer {
     autoChooser.addOption("A-Shoot-Depot", new PathPlannerAuto("A-Shoot-Depot"));
   }
 
-  /** Returns the Rotation2d the robot needs to face the hub. */
-  private Rotation2d calculateHubRotation() {
-    // Get poses.
-    Pose2d robotPose = drive.getPose();
-    Pose2d hubPose = Constants.Poses.hub.getPose();
-
-    // Pose differences.
-    double dx = hubPose.getX() - robotPose.getX();
-    double dy = hubPose.getY() - robotPose.getY();
-
-    // Angle from robot to hub
-    Rotation2d rotation = new Rotation2d(
-        Radians.of(Math.IEEEremainder(
-            Math.atan2(dy, dx), 
-            Constants.Mathematics.TAU)));
-
-    // Log the pointer
-    Pose2d pointer = new Pose2d(robotPose.getX(), robotPose.getY(), rotation);
-    Logger.recordOutput("Hub Pointer", pointer);
-
-    // Update drive target.
-    drive.setRotationTarget(rotation);
-
-    return drive.getRotationTarget();
-  }
-
-  private Rotation2d calculatePassingRotation() {
-    // Get poses.
-    Pose2d robotPose = drive.getPose();
-    Pose2d pointer = Constants.Poses.pointer.getPose();
-
-    pointer = (drive.getSide().equals(Side.RIGHT)) ? pointer : Constants.mirror(pointer);
-    
-    // Pose differences.
-    double dx = pointer.getX() - robotPose.getX();
-    double dy = pointer.getY() - robotPose.getY();
-
-    // Angle from robot to hub
-    Angle toPass = (Radians.of(Math.IEEEremainder(Math.atan2(dy, dx), Constants.Mathematics.TAU)));
-    
-    // Update drive target.
-    drive.setRotationTarget(new Rotation2d(toPass));
-
-    return drive.getRotationTarget();
-  }
-
-  /** Orient robot to face the hub. */
-  private Command firingOrientation() {
-    return Commands.either(
-      pointToAngle(this::calculateHubRotation),
-      pointToAngle(this::calculatePassingRotation),
-      () -> drive.getZone().equals(
-        Constants.getAlliance()
-          .equals(Alliance.Blue) 
-            ? Zone.BLUE 
-            : Zone.RED));
-  }
-
-  /**
-   * Orient the robot to face a supplied angle.
-   *
-   * @param rotation
-   */
-  private Command pointToAngle(Supplier<Rotation2d> rotation) {
-    return DriveCommands.joystickDriveAtAngle(
-        drive,
-        () -> -Constants.Joysticks.driver.getLeftY(),
-        () -> -Constants.Joysticks.driver.getLeftX(),
-        rotation);
-  }
-
   private void configureButtonBindings() {
     // Third person drive command.
     drive.setDefaultCommand(
@@ -195,11 +132,6 @@ public class RobotContainer {
   
     // Hold wheel position.
     Constants.Joysticks.driver.rightBumper().onTrue(Commands.runOnce(drive::stopWithX, drive));
-
-    // Align with hub or pointer.
-    Constants.Joysticks.operator
-      .x()
-      .whileTrue(firingOrientation());
 
     // Zero pose heading.
     Constants.Joysticks.driver

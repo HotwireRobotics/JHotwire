@@ -51,7 +51,7 @@ public class Motor {
                     Logger.recordOutput(
                         "Motors/SysId/" + this.toString(), state.toString())),
             new SysIdRoutine.Mechanism(
-                (voltage) -> io.runVoltage(voltage),
+                (voltage) -> io.putVoltage(voltage),
                 null,
                 subsystem));
   }
@@ -66,8 +66,8 @@ public class Motor {
    *
    * @param volts
    */
-  public void runVoltage(Voltage volts) {
-    io.runVoltage(volts);
+  public void putVoltage(Voltage volts) {
+    io.putVoltage(volts);
   }
 
   /**
@@ -75,9 +75,31 @@ public class Motor {
    * 
    * @param position
    */
-  public void runPosition(Angle position) {
-    io.runPosition(position);
+  public void putPosition(Angle position) {
+    io.putPosition(position);
     target = position;
+  }
+
+  // Command builders.
+  /**
+   * Run the motor to a position.
+   */
+  public Command runPosition(Angle position) {
+    return Commands.run(() -> putPosition(position));
+  }
+  
+  /**
+   * Run the motor to a velocity.
+   */
+  public Command runVelocity(AngularVelocity velocity) {
+    return Commands.run(() -> io.putVelocity(velocity));
+  }
+
+  /**
+   * Run the motor at a percent output.
+   */
+  public Command runPercent(double percent) {
+    return Commands.run(() -> io.putPercent(percent));
   }
 
   /**
@@ -94,8 +116,8 @@ public class Motor {
    * 
    * @param velocity
    */
-  public void runVelocity(AngularVelocity velocity) {
-    io.runVelocity(velocity);
+  public void putVelocity(AngularVelocity velocity) {
+    io.putVelocity(velocity);
   }
 
   /**
@@ -103,8 +125,8 @@ public class Motor {
    * 
    * @param percent
    */
-  public void runPercent(double percent) {
-    io.runPercent(percent);
+  public void putPercent(double percent) {
+    io.putPercent(percent);
   }
 
   /**

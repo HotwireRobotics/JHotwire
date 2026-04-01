@@ -554,34 +554,34 @@ public class Gamepiece {
      * @throws IllegalStateException if robot is not registered
      */
     public void launchFuel(LinearVelocity launchVelocity, Angle hoodAngle, Angle turretYaw, Distance launchHeight, Distance launchForward, Distance launchRight) {
-        if (robotPoseSupplier == null || robotFieldSpeedsSupplier == null) {
-            throw new IllegalStateException("Robot must be registered before launching fuel.");
-        }
+      if (robotPoseSupplier == null || robotFieldSpeedsSupplier == null) {
+          throw new IllegalStateException("Robot must be registered before launching fuel.");
+      }
 
-        Pose3d launchPose = new Pose3d(this.robotPoseSupplier.get())
-                .plus(new Transform3d(new Translation3d(launchForward, launchRight, launchHeight), Rotation3d.kZero));
-        ChassisSpeeds fieldSpeeds = this.robotFieldSpeedsSupplier.get();
+      Pose3d launchPose = new Pose3d(this.robotPoseSupplier.get())
+              .plus(new Transform3d(new Translation3d(launchForward, launchRight, launchHeight), Rotation3d.kZero));
+      ChassisSpeeds fieldSpeeds = this.robotFieldSpeedsSupplier.get();
 
-        double horizontalVel = Math.cos(hoodAngle.in(Radians)) * launchVelocity.in(MetersPerSecond);
-        double verticalVel = Math.sin(hoodAngle.in(Radians)) * launchVelocity.in(MetersPerSecond);
-        double xVel = horizontalVel
-                * Math.cos(
-                        turretYaw.plus(launchPose.getRotation().getMeasureZ()).in(Radians));
-        double yVel = horizontalVel
-                * Math.sin(
-                        turretYaw.plus(launchPose.getRotation().getMeasureZ()).in(Radians));
+      double horizontalVel = Math.cos(hoodAngle.in(Radians)) * launchVelocity.in(MetersPerSecond);
+      double verticalVel = Math.sin(hoodAngle.in(Radians)) * launchVelocity.in(MetersPerSecond);
+      double xVel = horizontalVel
+              * Math.cos(
+                      turretYaw.plus(launchPose.getRotation().getMeasureZ()).in(Radians));
+      double yVel = horizontalVel
+              * Math.sin(
+                      turretYaw.plus(launchPose.getRotation().getMeasureZ()).in(Radians));
 
-        xVel += fieldSpeeds.vxMetersPerSecond;
-        yVel += fieldSpeeds.vyMetersPerSecond;
+      xVel += fieldSpeeds.vxMetersPerSecond;
+      yVel += fieldSpeeds.vyMetersPerSecond;
 
-        spawnFuel(launchPose.getTranslation(), new Translation3d(xVel, yVel, verticalVel));
+      spawnFuel(launchPose.getTranslation(), new Translation3d(xVel, yVel, verticalVel));
     }
 
     public void launchFuel(LinearVelocity launchVelocity) {
         launchFuel(
             launchVelocity.plus(InchesPerSecond.of((Math.random() - 0.5) * 32)), 
-            Degrees.of(70), Degrees.of(180).plus(Degrees.of((Math.random() - 0.5) * 10)), 
-            Meters.of(14.759196), Meters.of(0.183302), Meters.of(((2 * Math.random() - 1) * (0.31 - FUEL_RADIUS))));
+            Degrees.of(70), Degrees.of(0).plus(Degrees.of((Math.random() - 0.5) * 10)), 
+            Inches.of(14.759196), Meters.of(-0.183302), Meters.of(((2 * Math.random() - 1) * (0.31 - FUEL_RADIUS))));
     }
 
     /**

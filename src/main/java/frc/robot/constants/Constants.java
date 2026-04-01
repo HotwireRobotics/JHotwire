@@ -62,18 +62,21 @@ public final class Constants {
 
     // Current limits for shooter motors.
     public static final Current kCurrentLimit = Amps.of(80);
+
+    // Average wheel radius.
+    public static final Distance kWheelRadius = Inches.of(3);
   }
 
   public static class Intake {
     // Static speed for intake rollers.
-    public static final double kSpeed = 0.8;
+    public static final AngularVelocity kSpeed = RPM.of(1000);
     // Arm oscillation frequency.
     public static final Frequency kOscillationFrequency = Hertz.of(2.62);
   }
 
   public static class Hopper {
     // Static speed for hopper rollers.
-    public static final double kSpeed = 0.8;
+    public static final AngularVelocity kSpeed = RPM.of(1000);
   }
 
   public static class Control {
