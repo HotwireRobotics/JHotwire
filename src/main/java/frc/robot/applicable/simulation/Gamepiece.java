@@ -577,11 +577,47 @@ public class Gamepiece {
       spawnFuel(launchPose.getTranslation(), new Translation3d(xVel, yVel, verticalVel));
     }
 
-    public void launchFuel(LinearVelocity launchVelocity) {
+    /**
+     * Spawns a fuel onto the field with a specified launch velocity and angle.
+     * 
+     * @param baseVelocity
+     */
+    public void launchFuel(LinearVelocity baseVelocity) {
+        // Tunable constants
+        final Angle HOOD_ANGLE = Degrees.of(70);
+        final Angle BASE_YAW = Degrees.of(180);
+
+        final Distance LAUNCH_HEIGHT = Inches.of(14.759196);
+        final Distance LAUNCH_FORWARD = Meters.of(-0.183302);
+        final double MAX_LATERAL_OFFSET = 0.31 - FUEL_RADIUS;
+
+        final double VELOCITY_NOISE_IPS = 32; // inches/sec
+        final double YAW_NOISE_DEG = 10;
+
+        // Randomization
+        double velocityNoise = (Math.random() - 0.5) * VELOCITY_NOISE_IPS;
+        double yawNoise = (Math.random() - 0.5) * YAW_NOISE_DEG;
+        double lateralOffset = (2 * Math.random() - 1) * MAX_LATERAL_OFFSET;
+
+        // Final computed values
+        LinearVelocity finalVelocity =
+                baseVelocity.plus(InchesPerSecond.of(velocityNoise));
+
+        Angle finalYaw =
+                BASE_YAW.plus(Degrees.of(yawNoise));
+
+        Distance launchRight =
+                Meters.of(lateralOffset);
+
+        // Launch
         launchFuel(
-            launchVelocity.plus(InchesPerSecond.of((Math.random() - 0.5) * 32)), 
-            Degrees.of(70), Degrees.of(180).plus(Degrees.of((Math.random() - 0.5) * 10)), 
-            Inches.of(14.759196), Meters.of(-0.183302), Meters.of(((2 * Math.random() - 1) * (0.31 - FUEL_RADIUS))));
+            finalVelocity,
+            HOOD_ANGLE,
+            finalYaw,
+            LAUNCH_HEIGHT,
+            LAUNCH_FORWARD,
+            launchRight
+        );
     }
 
     /**
