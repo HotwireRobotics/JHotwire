@@ -38,6 +38,10 @@ public class Shooter extends SubsystemBase {
   final Motor primary;
   /** Secondary shooter. */
   final Motor secondary;
+  /** Tertiary shooter. */
+  final Motor tertiary;
+  /** Quaternary shooter. */
+  final Motor quaternary;
 
   // Shooting array.
   final Motor[] rollers = {
@@ -55,5 +59,24 @@ public class Shooter extends SubsystemBase {
     feeder = new Motor(this, Constants.MotorIDs.ROLLERS);
     feeder.apply(
       new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
+    shooter = new Motor(this, Constants.MotorIDs.SHOOTER);
+    shooter.apply(
+      new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
+    
+    // Configure shooter motors with identical settings. 
+    Application configuration = new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40));
+    primary = new Motor(this, Constants.MotorIDs.PRIMARY); 
+    primary.apply(
+      configuration);
+    secondary = new Motor(this, Constants.MotorIDs.SECONDARY); 
+    secondary.apply(
+      configuration);
+    tertiary = new Motor(this, Constants.MotorIDs.TERTIARY); 
+    tertiary.apply(
+      configuration);
+    quaternary = new Motor(this, Constants.MotorIDs.QUATERNARY); 
+    quaternary.apply(
+      configuration);
+
   }
 }
