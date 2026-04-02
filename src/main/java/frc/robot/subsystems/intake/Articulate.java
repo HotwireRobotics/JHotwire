@@ -1,7 +1,7 @@
 package frc.robot.subsystems.intake;
 
-public class Truthful implements IntakeIO {
-  public Truthful() {}
+public class Articulate implements IntakeIO {
+  public Articulate() {}
 
   /**
    * Collect inputs from all vision systems.

@@ -24,7 +24,7 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Torque;
 import edu.wpi.first.units.measure.Voltage;
 
-public class TalonFXIO implements MotorIO {
+public class Articulate implements MotorIO {
 
   // Declare device.
   private final TalonFX motor;
@@ -37,12 +37,12 @@ public class TalonFXIO implements MotorIO {
   // Configurator.
   private final TalonFXConfigurator configurator;
 
-  public TalonFXIO(int deviceID) {
+  public Articulate(int deviceID) {
     motor = new TalonFX(deviceID);
     configurator = motor.getConfigurator();
   }
 
-  public TalonFXIO(int deviceID, Current currentLimit) {
+  public Articulate(int deviceID, Current currentLimit) {
     this(deviceID);
     setCurrentLimit(currentLimit);
   }

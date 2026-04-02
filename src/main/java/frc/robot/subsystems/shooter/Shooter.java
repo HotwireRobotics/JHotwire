@@ -65,7 +65,7 @@ public class Shooter extends SubsystemBase {
     // Initialize abstraction.
     io = Constants.mode.equals(Mode.SIM) 
       ? new Simulated() 
-      : new Truthful();
+      : new Articulate();
     this.inputs = new ShooterInputs();
 
     // Configure devices.
