@@ -50,7 +50,7 @@ public class Intake extends SubsystemBase {
   ) {
     // Initialize abstraction.
     io = Constants.mode.equals(Mode.SIM) 
-      ? new Simulated() 
+      ? new Simulation() 
       : new Articulate();
     this.inputs = new IntakeInputs();
 

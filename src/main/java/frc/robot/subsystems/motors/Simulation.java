@@ -30,7 +30,7 @@ import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Torque;
 import edu.wpi.first.units.measure.Voltage;
 
-public class Simulated implements MotorIO {
+public class Simulation implements MotorIO {
   // Declare device.
   private final TalonFX motor;
 
@@ -42,12 +42,12 @@ public class Simulated implements MotorIO {
   // Configurator.
   private final TalonFXConfigurator configurator;
 
-  public Simulated(int deviceID) {
+  public Simulation(int deviceID) {
     motor = new TalonFX(deviceID);
     configurator = motor.getConfigurator();
   }
 
-  public Simulated(int deviceID, Current currentLimit) {
+  public Simulation(int deviceID, Current currentLimit) {
     this(deviceID);
     setCurrentLimit(currentLimit);
   }

@@ -33,7 +33,7 @@ public class Motor {
 
   public Motor(Subsystem subsystem, Integer id) {
     io = Constants.mode.equals(Mode.SIM)
-      ? new Simulated(id)
+      ? new Simulation(id)
       : new Articulate(id);
     inputs = new MotorInputs();
 
