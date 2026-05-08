@@ -34,7 +34,7 @@ public class Motor {
   public Motor(Subsystem subsystem, Integer id) {
     io = Constants.mode.equals(Mode.SIM)
       ? new Simulation(id)
-      : new Articulate(id);
+      : new TalonFXIO(id);
     inputs = new MotorInputs();
 
     // Stash subsystem identifier.

@@ -25,6 +25,7 @@ import frc.robot.subsystems.motors.Motor.Application;
 import frc.robot.subsystems.motors.MotorIO.Direction;
 import frc.robot.subsystems.motors.MotorIO.FollowerMode;
 import frc.robot.subsystems.motors.MotorIO.NeutralMode;
+import frc.robot.subsystems.shooter.WideShooter;
 
 public class Shooter extends SubsystemBase {
     
@@ -65,7 +66,7 @@ public class Shooter extends SubsystemBase {
     // Initialize abstraction.
     io = Constants.mode.equals(Mode.SIM) 
       ? new Simulation() 
-      : new Articulate();
+      : new WideShooter();
     this.inputs = new ShooterInputs();
 
     // Configure devices.
@@ -110,8 +111,6 @@ public class Shooter extends SubsystemBase {
   public void periodic() {
     // Update subsystem inputs.
     io.updateInputs(inputs);
-
-    
   }
 
   /**
@@ -119,7 +118,7 @@ public class Shooter extends SubsystemBase {
    * 
    * @param velocity Target velocity.
    */
-  public Command runVelocity(AngularVelocity velocity) {
+  private Command runVelocity(AngularVelocity velocity) {
     // Stream shooting commands.
     return Commands.parallel(Arrays.stream(shooting)
       .map(motor -> motor.runVelocity(velocity))
@@ -130,12 +129,27 @@ public class Shooter extends SubsystemBase {
   /**
    * Stop shooter motors.
    */
-  public Command runHalt() {
+  private Command runHalt() {
     // Stream halt commands.
     return Commands.parallel(Arrays.stream(shooting)
       .map(motor -> motor.runPercent(0))
       .toArray(Command[]::new))
         .alongWith(manager.tag(() -> State.STOPPED));
+  }
+
+  
+  /**
+   * Run intake rollers.
+   */
+  public Command run() {
+    return runVelocity(Constants.Shooter.kSpeed);
+  }
+
+  /**
+   * Stop intake rollers.
+   */
+  public Command stop() {
+    return runHalt();
   }
 
   public static class ShootingVector {

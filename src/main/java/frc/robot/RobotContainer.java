@@ -3,6 +3,7 @@ package frc.robot;
 import static edu.wpi.first.units.Units.*;
 
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -82,9 +83,24 @@ public class RobotContainer {
     localization.addOption("Disabled",      false);
     localization.onChange(v -> vision.setEnabled(v));
 
-    // Declare pathplanner events.
+    // Declare drivetrain pathplanner events.
     final Command stopDrive = Commands.runOnce(() -> drive.stop());
     final Command lockDrive = Commands.runOnce(() -> drive.stopWithX());
+
+    // Declare intake pathplanner events.
+    final Command startIntaking = intake.run();
+    final Command stopIntaking = intake.stop();
+    NamedCommands.registerCommand("Start Intaking", startIntaking);
+    NamedCommands.registerCommand("Stop Intaking",   stopIntaking);
+
+    // Declare shooter pathplanner events.
+    final Command startShooting = shooter.run();
+    final Command stopShooting = shooter.stop();
+    NamedCommands.registerCommand("Start Shooting", startShooting);
+    NamedCommands.registerCommand("Stop Shooting",   stopShooting);
+
+    NamedCommands.registerCommand("Firing Sequence", Commands.sequence(
+      startShooting, Commands.waitTime(Constants.Shooter.kFiringTime), stopShooting));
 
     // Autonomous
     if (!Constants.mode.equals(Mode.COMPETITION)) {

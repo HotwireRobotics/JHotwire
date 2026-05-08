@@ -77,7 +77,7 @@ public class Intake extends SubsystemBase {
    * 
    * @param velocity Angular velocity to run rollers at.
    */
-  public Command runVelocity(AngularVelocity velocity) {
+  private Command runVelocity(AngularVelocity velocity) {
     return rollers.runVelocity(velocity).alongWith(
       manager.tag(() -> (velocity.gt(RPM.of(0)) 
         ? State.FORWARD 
@@ -88,8 +88,22 @@ public class Intake extends SubsystemBase {
   /** 
    * Halt intake rollers. 
    */
-  public Command runHalt() {
+  private Command runHalt() {
     return rollers.runPercent(0).alongWith(
       manager.tag(() -> State.STOPPED));
+  }
+
+  /**
+   * Run intake rollers.
+   */
+  public Command run() {
+    return runVelocity(Constants.Intake.kSpeed);
+  }
+
+  /**
+   * Stop intake rollers.
+   */
+  public Command stop() {
+    return runHalt();
   }
 }
