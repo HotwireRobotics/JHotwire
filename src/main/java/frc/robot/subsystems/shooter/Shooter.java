@@ -79,18 +79,18 @@ public class Shooter extends SubsystemBase {
     
     // Configure shooter motors with identical settings. 
     Application configuration = new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40));
-    primary = new Motor(this, Constants.MotorIDs.PRIMARY); 
+    primary    = new Motor(this, Constants.MotorIDs.PRIMARY); 
     primary.apply(
       configuration);
-    secondary = new Motor(this, Constants.MotorIDs.SECONDARY); 
+    secondary  = new Motor(this, Constants.MotorIDs.SECONDARY); 
     secondary.apply(
       configuration);
-    tertiary = new Motor(this, Constants.MotorIDs.TERTIARY); 
+    tertiary   = new Motor(this, Constants.MotorIDs.TERTIARY); 
     tertiary.apply(
       configuration);
     quaternary = new Motor(this, Constants.MotorIDs.QUATERNARY); 
     quaternary.apply(
-      configuration);
+      configuration); 
 
     // Set follower control.
     secondary.follow(primary, FollowerMode.ALIGNED);
@@ -123,7 +123,7 @@ public class Shooter extends SubsystemBase {
     return Commands.parallel(Arrays.stream(shooting)
       .map(motor -> motor.runVelocity(velocity))
       .toArray(Command[]::new))
-        .alongWith(manager.tag(() -> State.SHOOTING));
+        .alongWith(manager.tag(State.SHOOTING));
   }
 
   /**
@@ -134,7 +134,7 @@ public class Shooter extends SubsystemBase {
     return Commands.parallel(Arrays.stream(shooting)
       .map(motor -> motor.runPercent(0))
       .toArray(Command[]::new))
-        .alongWith(manager.tag(() -> State.STOPPED));
+        .alongWith(manager.tag(State.STOPPED));
   }
 
   
@@ -159,6 +159,8 @@ public class Shooter extends SubsystemBase {
     public ShootingVector(AngularVelocity velocity, Pose3d position) {
       this.position = position;
       final double vel = velocity.in(RotationsPerSecond) * Constants.Shooter.kWheelRadius.in(Meters);
+
+      // Normalize to vector.
       this.velocity = new Translation3d(
         Meters.of(Math.cos(vel)), 
         Meters.of(Math.sin(vel)), 

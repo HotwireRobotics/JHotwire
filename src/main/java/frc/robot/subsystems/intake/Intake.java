@@ -90,7 +90,7 @@ public class Intake extends SubsystemBase {
    */
   private Command runHalt() {
     return rollers.runPercent(0).alongWith(
-      manager.tag(() -> State.STOPPED));
+      manager.tag(State.STOPPED));
   }
 
   /**
