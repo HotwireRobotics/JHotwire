@@ -50,7 +50,7 @@ public class RobotContainer {
     drive = new Drivetrain(
       Joysticks.driver.x());
     shooter = new Shooter(
-      Joysticks.driver.rightBumper());
+      Joysticks.driver.rightTrigger());
     vision = new Vision(
       drive::getPose, drive::getRotation,
       drive::addVisionMeasurement);
