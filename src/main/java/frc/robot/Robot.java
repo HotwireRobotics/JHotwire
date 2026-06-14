@@ -2,10 +2,12 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.Hertz;
 import static edu.wpi.first.units.Units.RPM;
+import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.Seconds;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -91,6 +93,9 @@ public class Robot extends LoggedRobot {
   public void robotPeriodic() {
     // Track time.
     Time time = Seconds.of(Timer.getTimestamp());
+    container.drive.setPose(
+      container.drive.getPose().rotateBy(new Rotation2d(Math.sin(time.in(Seconds)/10)))
+    );
 
     // Control command scheduler and log data.
     CommandScheduler.getInstance().run();

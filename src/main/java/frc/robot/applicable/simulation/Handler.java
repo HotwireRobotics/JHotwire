@@ -668,7 +668,7 @@ public class Handler {
       return new Pose3d(
           pose.getX(),
           pose.getY(),
-          chassisHeightMeters,
+          7,
           new Rotation3d(rollRad, pitchRad, pose.getRotation().getRadians()));
     }
 
