@@ -194,3 +194,4 @@ public class RobotContainer {
 }
 
 // ./gradlew deploy --no-daemon
+// ./gradlew simulateExternalJavaRelease

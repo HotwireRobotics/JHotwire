@@ -32,6 +32,7 @@ public class Limelight implements VisionIO {
             Degrees.of(30), 
             Degrees.of(-90)
           ));
+          
       private static final Pose3d alpha = 
         new Pose3d(
           Meters.of(-0.1651), 
@@ -216,7 +217,7 @@ public class Limelight implements VisionIO {
      */
     public void updateInputs(VisionInputs inputs) {
       List<Measurement> measurements = getMeasurements();
-      if (measurements.size() > 0) {
+      if ((measurements.size() > 0) && false) {
         // Stream all camera inputs.
         inputs.detecting = measurements.stream()
           .anyMatch(m -> m.count > 0);
