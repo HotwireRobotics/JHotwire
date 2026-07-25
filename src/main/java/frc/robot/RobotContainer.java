@@ -21,6 +21,7 @@ import frc.robot.constants.Constants.Mode;
 import frc.robot.subsystems.drive.Drivetrain;
 import frc.robot.subsystems.drive.Drivetrain.Side;
 import frc.robot.subsystems.drive.Drivetrain.Zone;
+import frc.robot.subsystems.actuator.Actuator;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.vision.Vision;
@@ -37,6 +38,7 @@ public class RobotContainer {
   public final Vision vision;
   public final Intake intake;
   public final Shooter shooter;
+  public final Actuator actuator;
 
   // Simulation.
   public final Handler simulation;
@@ -57,17 +59,20 @@ public class RobotContainer {
       drive::addVisionMeasurement);
     intake = new Intake(
       Joysticks.driver.leftTrigger());
+    actuator = new Actuator(
+      Joysticks.driver.b());
 
     // Initialize simulation.
     if (Constants.mode.equals(Mode.SIM)) simulation = new Handler(
       () -> {
         return Constants.regress(Meters.of(drive.getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation())));
-      }, 
-      () -> shooter.manager.is(Shooter.State.SHOOTING), 
+      },
+      () -> shooter.manager.is(Shooter.State.SHOOTING),
       () -> intake.manager.is(Intake.State.FORWARD),
       () -> Degrees.of(0),
+      actuator::getDisplacement,
       drive::getPose, drive::getChassisSpeeds, drive::setPose
-    ); else simulation = new Handler(null, null, null, null, null, null, null);
+    ); else simulation = new Handler(null, null, null, null, null, null, null, null);
 
     // Configure button bindings.
     configureButtonBindings();

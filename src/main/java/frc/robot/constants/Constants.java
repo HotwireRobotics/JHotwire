@@ -79,6 +79,27 @@ public final class Constants {
     public static final AngularVelocity kSpeed = RPM.of(1000);
   }
 
+  public static class Actuator {
+    // Linear travel of the intake when the actuator fully extends.
+    public static final Distance kTravel = Feet.of(1);
+    // Inclination of the linear travel relative to horizontal.
+    public static final Angle kAngle = Degrees.of(25);
+
+    // CANcoder-referenced positions for the two actuator states.
+    public static final Angle kRetracted = Rotations.of(0);
+    public static final Angle kExtended = Rotations.of(10);
+
+    // Position error within which the actuator is considered "on target".
+    public static final Angle kTolerance = Rotations.of(0.1);
+
+    // Exponential smoothing factor for simulated motion, in [0, 1].
+    // Higher values reach the target more quickly.
+    public static final double kSmoothing = 0.12;
+
+    // Closed-loop proportional gain for the leader motor.
+    public static final double kP = 1.0;
+  }
+
   public static class Control {
     public static final PIDConstants translationPID = new PIDConstants(25.0, 0.0, 0.0);
     public static final PIDConstants rotationPID = new PIDConstants(13.0, 0.0, 0.0);
@@ -331,7 +352,11 @@ public final class Constants {
       QUATERNARY = 15,
       // Intake mechanism.
       WRIST      = 16,
-      ROLLERS    = 17;
+      ROLLERS    = 17,
+      // Actuator mechanism. The right motor carries the CANcoder and leads.
+      ACTUATOR_LEFT    = 18,
+      ACTUATOR_RIGHT   = 19,
+      ACTUATOR_ENCODER = 20;
   }
 
   /**

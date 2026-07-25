@@ -18,6 +18,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -48,6 +49,7 @@ public class Handler {
     private final BooleanSupplier doShoot;
     private final BooleanSupplier doIntake;
     private final Supplier<Angle> target;
+    private final Supplier<Translation3d> actuator;
 
     // Drive suppliers.
     private final Supplier<Pose2d> pose;
@@ -64,6 +66,7 @@ public class Handler {
         BooleanSupplier shooter,
         BooleanSupplier intake,
         Supplier<Angle> wrist,
+        Supplier<Translation3d> actuator,
         Supplier<Pose2d> pose,
         Supplier<ChassisSpeeds> chassisSpeeds,
         Consumer<Pose2d> supp
@@ -71,6 +74,8 @@ public class Handler {
         this.velocity = velocity;
 
         this.supp = supp;
+
+        this.actuator = actuator;
 
         doIntake = () -> {
             return intake.getAsBoolean() && (counter < limit) && (Math.random() > 0.99) && (pitch.lte(Degrees.of(3)));
@@ -157,12 +162,16 @@ public class Handler {
         Logger.recordOutput("Simulation/Components/Intake", Render.Poses.intake);
         Logger.recordOutput("RobotPose", pose.get());
         Logger.recordOutput("ZeroedComponentPoses", new Pose3d[] {new Pose3d()});
+
+        // Offset the intake by the actuator's linear extension so the deployed
+        // position tracks the actuator subsystem.
+        Translation3d extension = (actuator != null) ? actuator.get() : Translation3d.kZero;
         Logger.recordOutput("Components/Intake", new Pose3d[] {
             new Pose3d(
-                0.1958, 0.0, 0.21, 
+                0.1958 + extension.getX(), 0.0 + extension.getY(), 0.21 + extension.getZ(),
                 new Rotation3d(
-                    Rotations.of(0), 
-                    getWristPitch(), 
+                    Rotations.of(0),
+                    getWristPitch(),
                     Rotations.of(0)
                 ))
         });

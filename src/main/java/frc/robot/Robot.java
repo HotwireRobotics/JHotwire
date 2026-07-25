@@ -93,9 +93,6 @@ public class Robot extends LoggedRobot {
   public void robotPeriodic() {
     // Track time.
     Time time = Seconds.of(Timer.getTimestamp());
-    container.drive.setPose(
-      container.drive.getPose().rotateBy(new Rotation2d(Math.sin(time.in(Seconds)/10)))
-    );
 
     // Control command scheduler and log data.
     CommandScheduler.getInstance().run();
@@ -120,6 +117,9 @@ public class Robot extends LoggedRobot {
     // Update field visualization.
     field.setRobotPose(container.drive.getPose());
     container.simulation.tick();
+
+    if (container.actuator.getExtension() < 0.01) container.actuator.extend();
+    if (container.actuator.getExtension() > 0.99) container.actuator.retract();
   }
 
   @Override
