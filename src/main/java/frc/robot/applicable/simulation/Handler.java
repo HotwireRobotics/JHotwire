@@ -29,175 +29,172 @@ import frc.robot.applicable.simulation.mechanisms.Render;
 import frc.robot.constants.Constants;
 
 public class Handler {
-    private static final double FIELD_LENGTH_METERS = 16.51;
-    private static final double FIELD_WIDTH_METERS = 8.04;
+  private static final double FIELD_LENGTH_METERS = 16.51;
+  private static final double FIELD_WIDTH_METERS = 8.04;
 
-    private static final Distance ROBOT_WIDTH_WITH_BUMPERS = Inches.of(34);
-    private static final Distance ROBOT_LENGTH_WITH_BUMPERS = Inches.of(34);
-    private static final Distance BUMPER_HEIGHT = Inches.of(5);
-    private static final Distance BUMPER_CLEARANCE = Inches.of(2.5);
-    private static final Distance BUMPER_SQUISH_COMPLIANCE = Inches.of(0.25);
-    private static final double ROBOT_MASS_KG = 105.0 * 0.45359237;
+  private static final Distance ROBOT_WIDTH_WITH_BUMPERS = Inches.of(34);
+  private static final Distance ROBOT_LENGTH_WITH_BUMPERS = Inches.of(34);
+  private static final Distance BUMPER_HEIGHT = Inches.of(5);
+  private static final Distance BUMPER_CLEARANCE = Inches.of(2.5);
+  private static final Distance BUMPER_SQUISH_COMPLIANCE = Inches.of(0.25);
+  private static final double ROBOT_MASS_KG = 105.0 * 0.45359237;
 
-    // Hopper count.
-    private int counter = 0;
-    private Angle motion = Degrees.of(0);
-    private Angle pitch = Degrees.of(0);
-    private final int limit = 28;
-    // Declare supplier for shooting.
-    private final Supplier<AngularVelocity> velocity;
-    private final BooleanSupplier doShoot;
-    private final BooleanSupplier doIntake;
-    private final Supplier<Angle> target;
-    private final Supplier<Translation3d> actuator;
+  // Hopper count.
+  private int counter = 0;
+  private Angle motion = Degrees.of(0);
+  private Angle pitch = Degrees.of(0);
+  private final int limit = 28;
+  // Declare supplier for shooting.
+  private final Supplier<AngularVelocity> velocity;
+  private final BooleanSupplier doShoot;
+  private final BooleanSupplier doIntake;
+  private final Supplier<Angle> target;
+  private final Supplier<Translation3d> actuator;
 
-    // Drive suppliers.
-    private final Supplier<Pose2d> pose;
-    private final Consumer<Pose2d> supp;
-    private final Supplier<ChassisSpeeds> chassisSpeeds;
+  // Drive suppliers.
+  private final Supplier<Pose2d> pose;
+  private final Consumer<Pose2d> supp;
+  private final Supplier<ChassisSpeeds> chassisSpeeds;
 
-    private final Gamepiece gamepieceSimulation;
-    private final Render model;
+  private final Gamepiece gamepieceSimulation;
+  private final Render model;
 
-    private final RobotCollisionPhysics physics;
-    
-    public Handler(
-        Supplier<AngularVelocity> velocity,
-        BooleanSupplier shooter,
-        BooleanSupplier intake,
-        Supplier<Angle> wrist,
-        Supplier<Translation3d> actuator,
-        Supplier<Pose2d> pose,
-        Supplier<ChassisSpeeds> chassisSpeeds,
-        Consumer<Pose2d> supp
-    ) {
-        this.velocity = velocity;
+  private final RobotCollisionPhysics physics;
 
-        this.supp = supp;
+  public Handler(
+      Supplier<AngularVelocity> velocity,
+      BooleanSupplier shooter,
+      BooleanSupplier intake,
+      Supplier<Angle> wrist,
+      Supplier<Translation3d> actuator,
+      Supplier<Pose2d> pose,
+      Supplier<ChassisSpeeds> chassisSpeeds,
+      Consumer<Pose2d> supp) {
+    this.velocity = velocity;
 
-        this.actuator = actuator;
+    this.supp = supp;
 
-        doIntake = () -> {
-            return intake.getAsBoolean() && (counter < limit) && (Math.random() > 0.99) && (pitch.lte(Degrees.of(3)));
-        };
+    this.actuator = actuator;
 
-        target = wrist;
+    doIntake = () -> {
+      return intake.getAsBoolean() && (counter < limit) && (Math.random() > 0.99) && (pitch.lte(Degrees.of(3)));
+    };
 
-        doShoot = shooter;
+    target = wrist;
 
-        this.pose = pose;
-        this.chassisSpeeds = chassisSpeeds;
+    doShoot = shooter;
 
-        model = new Render();
-        gamepieceSimulation = new Gamepiece();
-        gamepieceSimulation.spawnStartingFuel();
+    this.pose = pose;
+    this.chassisSpeeds = chassisSpeeds;
 
-        physics = new RobotCollisionPhysics(
-            ROBOT_LENGTH_WITH_BUMPERS,
-            ROBOT_LENGTH_WITH_BUMPERS,
-            BUMPER_HEIGHT,
-            BUMPER_CLEARANCE,
-            BUMPER_SQUISH_COMPLIANCE,
-            ROBOT_MASS_KG
-        );
+    model = new Render();
+    gamepieceSimulation = new Gamepiece();
+    gamepieceSimulation.spawnStartingFuel();
 
-        // Register a robot for collision with fuel.
-        gamepieceSimulation.registerRobot(
-                Inches.of(35),
-                Inches.of(35),
-                Inches.of(4),
-                this.pose, this.chassisSpeeds);
+    physics = new RobotCollisionPhysics(
+        ROBOT_LENGTH_WITH_BUMPERS,
+        ROBOT_LENGTH_WITH_BUMPERS,
+        BUMPER_HEIGHT,
+        BUMPER_CLEARANCE,
+        BUMPER_SQUISH_COMPLIANCE,
+        ROBOT_MASS_KG);
 
-        gamepieceSimulation.registerIntake(
-            Inches.of(17.5), Inches.of(24.118), Inches.of(-14.5), Inches.of(15.5), doIntake, this::intake);
-        
-        gamepieceSimulation.setSubticks(5);
-        gamepieceSimulation.setLoggingFrequency(30);
-        gamepieceSimulation.enableAirResistance();
-        gamepieceSimulation.start();
+    // Register a robot for collision with fuel.
+    gamepieceSimulation.registerRobot(
+        Inches.of(35),
+        Inches.of(35),
+        Inches.of(4),
+        this.pose, this.chassisSpeeds);
+
+    gamepieceSimulation.registerIntake(
+        Inches.of(17.5), Inches.of(24.118), Inches.of(-14.5), Inches.of(15.5), doIntake, this::intake);
+
+    gamepieceSimulation.setSubticks(5);
+    gamepieceSimulation.setLoggingFrequency(30);
+    gamepieceSimulation.enableAirResistance();
+    gamepieceSimulation.start();
+  }
+
+  /** Attempt to decrement the gamepiece counter. */
+  private void shoot() {
+    // Random chance of not firing based on the fact that we usually only shoot ~4
+    // per second.
+    Time time = Constants.Tempo.getTime();
+    if (((counter > 0) && ((time.in(Seconds) % ((10 / ((-50 * motion.in(Degrees)) + (3 * counter)))))
+        + (Math.random() / 10)) < 0.05)) {
+      gamepieceSimulation.launchFuel(lineate(velocity.get(), Constants.Shooter.kWheelRadius));
+      counter--;
     }
+  }
 
-    /** Attempt to decrement the gamepiece counter. */
-    private void shoot() {
-        // Random chance of not firing based on the fact that we usually only shoot ~4 per second.
-        Time time = Constants.Tempo.getTime();
-        if (
-            ((counter > 0) && ((time.in(Seconds) % ((10 / ((-50 * motion.in(Degrees)) + (3 * counter))))) + (Math.random()/10)) < 0.05)
-        ) {
-            gamepieceSimulation.launchFuel(lineate(velocity.get(), Constants.Shooter.kWheelRadius));
-            counter --;
-        }
-    }
+  /** Attempt to increment gamepiece counter. */
+  public void intake() {
+    this.counter++;
+  }
 
-    /** Attempt to increment gamepiece counter. */
-    public void intake() {
-        this.counter ++;
-    }
+  /** Initialize with gamepiece(s). */
+  public void setCounter(
+      int count) {
+    counter = count;
+  }
 
-    /** Initialize with gamepiece(s). */
-    public void setCounter(
-        int count
-    ) {
-        counter = count;             
-    }
+  /** Update simulation. */
+  public void tick() {
+    if (doShoot.getAsBoolean())
+      this.shoot();
+    gamepieceSimulation.updateSim();
 
-    /** Update simulation. */
-    public void tick() {
-        if (doShoot.getAsBoolean()) this.shoot();
-        gamepieceSimulation.updateSim();
+    Logger.recordOutput("Simulation/Score/Blue", Gamepiece.Hub.BLUE_HUB.getScore());
+    Logger.recordOutput("Simulation/Score/Red", Gamepiece.Hub.RED_HUB.getScore());
+    Logger.recordOutput("Simulation/Pitch", pitch);
+    Logger.recordOutput("Simulation/Motion", motion);
 
-        Logger.recordOutput("Simulation/Score/Blue", Gamepiece.Hub.BLUE_HUB.getScore());
-        Logger.recordOutput("Simulation/Score/Red",  Gamepiece.Hub.RED_HUB.getScore());
-        Logger.recordOutput("Simulation/Pitch", pitch);
-        Logger.recordOutput("Simulation/Motion", motion);
+    motion = (pitch.minus(target.get().times(-1))).times(0.1).plus(
+        (pitch.gt(Degrees.of(0)) ? Degrees.of(Math.random() * 0.03) : Degrees.of(0)));
 
-        motion = (pitch.minus(target.get().times(-1))).times(0.1).plus(
-            (pitch.gt(Degrees.of(0)) ? Degrees.of(Math.random() * 0.03) : Degrees.of(0)));
-        
-        pitch = pitch.minus(motion);
-        
-        Pose3d robotPose3d = physics.getRobotPose3d(pose.get());
-        Logger.recordOutput("Simulation/Pose", robotPose3d);
-        Logger.recordOutput("Simulation/Components/Bumpers", Render.Poses.bumpers);
-        Logger.recordOutput("Simulation/Components/Intake", Render.Poses.intake);
-        Logger.recordOutput("RobotPose", pose.get());
-        Logger.recordOutput("ZeroedComponentPoses", new Pose3d[] {new Pose3d()});
+    pitch = pitch.minus(motion);
 
-        // Offset the intake by the actuator's linear extension so the deployed
-        // position tracks the actuator subsystem.
-        Translation3d extension = (actuator != null) ? actuator.get() : Translation3d.kZero;
-        Logger.recordOutput("Components/Intake", new Pose3d[] {
-            new Pose3d(
-                0.1958 + extension.getX(), 0.0 + extension.getY(), 0.21 + extension.getZ(),
-                new Rotation3d(
-                    Rotations.of(0),
-                    getWristPitch(),
-                    Rotations.of(0)
-                ))
-        });
-        physics.resolveFieldBoundaryCollision(pose.get(), chassisSpeeds.get(), supp);
-    }
+    Pose3d robotPose3d = physics.getRobotPose3d(pose.get());
+    Logger.recordOutput("Simulation/Pose", robotPose3d);
+    Logger.recordOutput("Simulation/Components/Bumpers", Render.Poses.bumpers);
+    Logger.recordOutput("Simulation/Components/Intake", Render.Poses.intake);
+    Logger.recordOutput("RobotPose", pose.get());
+    Logger.recordOutput("ZeroedComponentPoses", new Pose3d[] { new Pose3d() });
 
-    public void restart() {
-        gamepieceSimulation.clearFuel();
-        gamepieceSimulation.spawnStartingFuel(); 
+    // Offset the intake by the actuator's linear extension so the deployed
+    // position tracks the actuator subsystem.
+    Translation3d extension = (actuator != null) ? actuator.get() : Translation3d.kZero;
+    Logger.recordOutput("Components/Intake", new Pose3d[] {
+        new Pose3d(
+            0.1958 + extension.getX(), 0.0 + extension.getY(), 0.21 + extension.getZ(),
+            new Rotation3d(
+                Rotations.of(0),
+                getWristPitch(),
+                Rotations.of(0)))
+    });
+    physics.resolveFieldBoundaryCollision(pose.get(), chassisSpeeds.get(), supp);
+  }
 
-        Gamepiece.Hub.BLUE_HUB.resetScore();
-        Gamepiece.Hub.RED_HUB.resetScore();
-    }
+  public void restart() {
+    gamepieceSimulation.clearFuel();
+    gamepieceSimulation.spawnStartingFuel();
 
-    public void autonomous() {
-        restart();
-        setCounter(8);
-    }
+    Gamepiece.Hub.BLUE_HUB.resetScore();
+    Gamepiece.Hub.RED_HUB.resetScore();
+  }
 
-    public Angle getWristPitch() {
-        return pitch;
-    }
+  public void autonomous() {
+    restart();
+    setCounter(8);
+  }
 
-    private LinearVelocity lineate(AngularVelocity velocity, Distance radius) {
-        return radius.times(Constants.Mathematics.TAU).per(Second).times(velocity.in(RotationsPerSecond));
-    }
+  public Angle getWristPitch() {
+    return pitch;
+  }
+
+  private LinearVelocity lineate(AngularVelocity velocity, Distance radius) {
+    return radius.times(Constants.Mathematics.TAU).per(Second).times(velocity.in(RotationsPerSecond));
+  }
 
   private static class RobotCollisionPhysics {
     private static final double SIM_DT_SECONDS = 0.02;
@@ -232,22 +229,24 @@ public class Handler {
     private static final double TRENCH_BLOCK_WIDTH = 0.305;
 
     private final ColliderRect[] staticRectangles = {
-      // Hub side walls.
-      new ColliderRect(4.61 - HUB_SIDE / 2, FIELD_WIDTH_METERS / 2 - HUB_SIDE / 2, 4.61 + HUB_SIDE / 2, FIELD_WIDTH_METERS / 2 + HUB_SIDE / 2),
-      new ColliderRect(
-          FIELD_LENGTH_METERS - 4.61 - HUB_SIDE / 2,
-          FIELD_WIDTH_METERS / 2 - HUB_SIDE / 2,
-          FIELD_LENGTH_METERS - 4.61 + HUB_SIDE / 2,
-          FIELD_WIDTH_METERS / 2 + HUB_SIDE / 2),
-      // Trench blocks.
-      new ColliderRect(3.96, TRENCH_WIDTH, 5.18, TRENCH_WIDTH + TRENCH_BLOCK_WIDTH),
-      new ColliderRect(3.96, FIELD_WIDTH_METERS - 1.57, 5.18, FIELD_WIDTH_METERS - 1.57 + TRENCH_BLOCK_WIDTH),
-      new ColliderRect(FIELD_LENGTH_METERS - 5.18, TRENCH_WIDTH, FIELD_LENGTH_METERS - 3.96, TRENCH_WIDTH + TRENCH_BLOCK_WIDTH),
-      new ColliderRect(
-          FIELD_LENGTH_METERS - 5.18,
-          FIELD_WIDTH_METERS - 1.57,
-          FIELD_LENGTH_METERS - 3.96,
-          FIELD_WIDTH_METERS - 1.57 + TRENCH_BLOCK_WIDTH)
+        // Hub side walls.
+        new ColliderRect(4.61 - HUB_SIDE / 2, FIELD_WIDTH_METERS / 2 - HUB_SIDE / 2, 4.61 + HUB_SIDE / 2,
+            FIELD_WIDTH_METERS / 2 + HUB_SIDE / 2),
+        new ColliderRect(
+            FIELD_LENGTH_METERS - 4.61 - HUB_SIDE / 2,
+            FIELD_WIDTH_METERS / 2 - HUB_SIDE / 2,
+            FIELD_LENGTH_METERS - 4.61 + HUB_SIDE / 2,
+            FIELD_WIDTH_METERS / 2 + HUB_SIDE / 2),
+        // Trench blocks.
+        new ColliderRect(3.96, TRENCH_WIDTH, 5.18, TRENCH_WIDTH + TRENCH_BLOCK_WIDTH),
+        new ColliderRect(3.96, FIELD_WIDTH_METERS - 1.57, 5.18, FIELD_WIDTH_METERS - 1.57 + TRENCH_BLOCK_WIDTH),
+        new ColliderRect(FIELD_LENGTH_METERS - 5.18, TRENCH_WIDTH, FIELD_LENGTH_METERS - 3.96,
+            TRENCH_WIDTH + TRENCH_BLOCK_WIDTH),
+        new ColliderRect(
+            FIELD_LENGTH_METERS - 5.18,
+            FIELD_WIDTH_METERS - 1.57,
+            FIELD_LENGTH_METERS - 3.96,
+            FIELD_WIDTH_METERS - 1.57 + TRENCH_BLOCK_WIDTH)
     };
 
     private final double robotWidthMeters;
@@ -296,22 +295,21 @@ public class Handler {
       double halfWidth = robotWidthMeters / 2.0;
       double heading = pose.getRotation().getRadians();
 
-      // Project oriented half extents into field X/Y axes for an AABB-safe boundary clamp.
+      // Project oriented half extents into field X/Y axes for an AABB-safe boundary
+      // clamp.
       double projectedHalfX = Math.abs(Math.cos(heading)) * halfLength + Math.abs(Math.sin(heading)) * halfWidth;
       double projectedHalfY = Math.abs(Math.sin(heading)) * halfLength + Math.abs(Math.cos(heading)) * halfWidth;
       double complianceX = Math.min(projectedHalfX * 0.4, bumperComplianceMeters);
       double complianceY = Math.min(projectedHalfY * 0.4, bumperComplianceMeters);
 
-      double clampedX =
-          MathUtil.clamp(
-              pose.getX(),
-              projectedHalfX - complianceX * 0.05,
-              FIELD_LENGTH_METERS - projectedHalfX + complianceX * 0.05);
-      double clampedY =
-          MathUtil.clamp(
-              pose.getY(),
-              projectedHalfY - complianceY * 0.05,
-              FIELD_WIDTH_METERS - projectedHalfY + complianceY * 0.05);
+      double clampedX = MathUtil.clamp(
+          pose.getX(),
+          projectedHalfX - complianceX * 0.05,
+          FIELD_LENGTH_METERS - projectedHalfX + complianceX * 0.05);
+      double clampedY = MathUtil.clamp(
+          pose.getY(),
+          projectedHalfY - complianceY * 0.05,
+          FIELD_WIDTH_METERS - projectedHalfY + complianceY * 0.05);
 
       boolean hitXWall = Math.abs(clampedX - pose.getX()) > 1e-6;
       boolean hitYWall = Math.abs(clampedY - pose.getY()) > 1e-6;
@@ -325,21 +323,18 @@ public class Handler {
         poseSetter.accept(correctedPose);
       }
 
-      double normalImpactSpeed =
-          Math.hypot(hitXWall ? speeds.vxMetersPerSecond : 0.0, hitYWall ? speeds.vyMetersPerSecond : 0.0);
-      double normalImpulseNewtonSeconds =
-          robotMassKg * (1.0 + coefficientOfRestitution) * normalImpactSpeed;
-      double tangentImpactSpeed =
-          Math.hypot(hitYWall ? speeds.vxMetersPerSecond : 0.0, hitXWall ? speeds.vyMetersPerSecond : 0.0);
-      double frictionImpulseNewtonSeconds =
-          robotMassKg * tangentFrictionCoefficient * tangentImpactSpeed;
-      double linearAccelerationMps2 =
-          Math.hypot(
-                  speeds.vxMetersPerSecond - previousSpeeds.vxMetersPerSecond,
-                  speeds.vyMetersPerSecond - previousSpeeds.vyMetersPerSecond)
-              / SIM_DT_SECONDS;
-      double angularAccelerationRadps2 =
-          Math.abs(speeds.omegaRadiansPerSecond - previousSpeeds.omegaRadiansPerSecond) / SIM_DT_SECONDS;
+      double normalImpactSpeed = Math.hypot(hitXWall ? speeds.vxMetersPerSecond : 0.0,
+          hitYWall ? speeds.vyMetersPerSecond : 0.0);
+      double normalImpulseNewtonSeconds = robotMassKg * (1.0 + coefficientOfRestitution) * normalImpactSpeed;
+      double tangentImpactSpeed = Math.hypot(hitYWall ? speeds.vxMetersPerSecond : 0.0,
+          hitXWall ? speeds.vyMetersPerSecond : 0.0);
+      double frictionImpulseNewtonSeconds = robotMassKg * tangentFrictionCoefficient * tangentImpactSpeed;
+      double linearAccelerationMps2 = Math.hypot(
+          speeds.vxMetersPerSecond - previousSpeeds.vxMetersPerSecond,
+          speeds.vyMetersPerSecond - previousSpeeds.vyMetersPerSecond)
+          / SIM_DT_SECONDS;
+      double angularAccelerationRadps2 = Math.abs(speeds.omegaRadiansPerSecond - previousSpeeds.omegaRadiansPerSecond)
+          / SIM_DT_SECONDS;
       double ax = (speeds.vxMetersPerSecond - previousSpeeds.vxMetersPerSecond) / SIM_DT_SECONDS;
       double ay = (speeds.vyMetersPerSecond - previousSpeeds.vyMetersPerSecond) / SIM_DT_SECONDS;
       updateRobotTilt(correctedPose, ax, ay);
@@ -369,11 +364,13 @@ public class Handler {
           Math.min(angularAccelerationRadps2, MAX_ANGULAR_ACCEL_RADPS2));
       Logger.recordOutput("Simulation/RobotPhysics/PitchDeg", Math.toDegrees(pitchRad));
       Logger.recordOutput("Simulation/RobotPhysics/RollDeg", Math.toDegrees(rollRad));
-      Logger.recordOutput("Simulation/RobotPhysics/OnBump", getTerrainHeight(correctedPose.getX(), correctedPose.getY()) > 1e-3);
+      Logger.recordOutput("Simulation/RobotPhysics/OnBump",
+          getTerrainHeight(correctedPose.getX(), correctedPose.getY()) > 1e-3);
     }
 
     /**
-     * Applies all static colliders currently used by fuel interactions to the robot body.
+     * Applies all static colliders currently used by fuel interactions to the robot
+     * body.
      */
     private Pose2d resolveStaticColliders(
         Pose2d pose, double halfLength, double halfWidth, int passes) {
@@ -395,14 +392,17 @@ public class Handler {
     }
 
     /**
-     * Uses SAT-style extents in field axes for an oriented-robot vs axis-aligned-rect collision test.
+     * Uses SAT-style extents in field axes for an oriented-robot vs
+     * axis-aligned-rect collision test.
      */
     private Pose2d resolveRectangleCollision(
         Pose2d pose, ColliderRect rect, double halfLength, double halfWidth) {
-      // Let robots traverse bump lanes without trench block sidewalls hard-locking movement.
-    //   if (isTrenchBlockRect(rect) && isInBumpTraversalWindow(pose, halfLength, halfWidth)) {
-    //     return pose;
-    //   }
+      // Let robots traverse bump lanes without trench block sidewalls hard-locking
+      // movement.
+      // if (isTrenchBlockRect(rect) && isInBumpTraversalWindow(pose, halfLength,
+      // halfWidth)) {
+      // return pose;
+      // }
 
       double heading = pose.getRotation().getRadians();
       double projectedHalfX = Math.abs(Math.cos(heading)) * halfLength + Math.abs(Math.sin(heading)) * halfWidth;
@@ -478,15 +478,19 @@ public class Handler {
       Translation2d sideOffset = new Translation2d(-headingSin * halfWidth, headingCos * halfWidth);
       Translation2d center = pose.getTranslation();
 
-      double frontLeftHeight = getTerrainHeight(center.plus(frontOffset).plus(sideOffset).getX(), center.plus(frontOffset).plus(sideOffset).getY());
-      double frontRightHeight = getTerrainHeight(center.plus(frontOffset).minus(sideOffset).getX(), center.plus(frontOffset).minus(sideOffset).getY());
-      double rearLeftHeight = getTerrainHeight(center.minus(frontOffset).plus(sideOffset).getX(), center.minus(frontOffset).plus(sideOffset).getY());
-      double rearRightHeight = getTerrainHeight(center.minus(frontOffset).minus(sideOffset).getX(), center.minus(frontOffset).minus(sideOffset).getY());
+      double frontLeftHeight = getTerrainHeight(center.plus(frontOffset).plus(sideOffset).getX(),
+          center.plus(frontOffset).plus(sideOffset).getY());
+      double frontRightHeight = getTerrainHeight(center.plus(frontOffset).minus(sideOffset).getX(),
+          center.plus(frontOffset).minus(sideOffset).getY());
+      double rearLeftHeight = getTerrainHeight(center.minus(frontOffset).plus(sideOffset).getX(),
+          center.minus(frontOffset).plus(sideOffset).getY());
+      double rearRightHeight = getTerrainHeight(center.minus(frontOffset).minus(sideOffset).getX(),
+          center.minus(frontOffset).minus(sideOffset).getY());
 
-      double maxWheelHeight =
-          Math.max(Math.max(frontLeftHeight, frontRightHeight), Math.max(rearLeftHeight, rearRightHeight));
-      double minWheelHeight =
-          Math.min(Math.min(frontLeftHeight, frontRightHeight), Math.min(rearLeftHeight, rearRightHeight));
+      double maxWheelHeight = Math.max(Math.max(frontLeftHeight, frontRightHeight),
+          Math.max(rearLeftHeight, rearRightHeight));
+      double minWheelHeight = Math.min(Math.min(frontLeftHeight, frontRightHeight),
+          Math.min(rearLeftHeight, rearRightHeight));
       double wheelHeightSpread = maxWheelHeight - minWheelHeight;
       allWheelsGrounded = wheelHeightSpread <= WHEEL_CONTACT_HEIGHT_TOLERANCE_METERS;
 
@@ -507,20 +511,17 @@ public class Handler {
       double inertialPitch = MathUtil.clamp(-longitudinalAccel / 9.81 * 0.18, -0.16, 0.16);
       double inertialRoll = MathUtil.clamp(lateralAccel / 9.81 * 0.22, -0.20, 0.20);
 
-      double targetPitch =
-          MathUtil.clamp(terrainPitch + inertialPitch, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
-      double targetRoll =
-          MathUtil.clamp(terrainRoll + inertialRoll, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
+      double targetPitch = MathUtil.clamp(terrainPitch + inertialPitch, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
+      double targetRoll = MathUtil.clamp(terrainRoll + inertialRoll, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
 
       // Vertical rigid-body dynamics: gravity + moving support from terrain.
       chassisVerticalVelocityMps -= GRAVITY_MPS2 * SIM_DT_SECONDS;
       chassisHeightMeters += chassisVerticalVelocityMps * SIM_DT_SECONDS;
       if (chassisHeightMeters <= targetHeight + CHASSIS_CONTACT_EPSILON_METERS) {
         chassisHeightMeters = targetHeight;
-        double launchVelocity =
-            Math.min(
-                supportVelocityMps * SUPPORT_LAUNCH_VELOCITY_GAIN,
-                MAX_SUPPORT_LAUNCH_VELOCITY_MPS);
+        double launchVelocity = Math.min(
+            supportVelocityMps * SUPPORT_LAUNCH_VELOCITY_GAIN,
+            MAX_SUPPORT_LAUNCH_VELOCITY_MPS);
         if (launchVelocity > chassisVerticalVelocityMps) {
           // Preserve momentum over crest transitions so the robot can "jump".
           chassisVerticalVelocityMps = launchVelocity;
@@ -551,16 +552,15 @@ public class Handler {
       }
       pitchRateRadPerSec += pitchAccel * SIM_DT_SECONDS;
       rollRateRadPerSec += rollAccel * SIM_DT_SECONDS;
-      pitchRad =
-          MathUtil.clamp(
-              pitchRad + pitchRateRadPerSec * SIM_DT_SECONDS, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
-      rollRad =
-          MathUtil.clamp(
-              rollRad + rollRateRadPerSec * SIM_DT_SECONDS, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
+      pitchRad = MathUtil.clamp(
+          pitchRad + pitchRateRadPerSec * SIM_DT_SECONDS, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
+      rollRad = MathUtil.clamp(
+          rollRad + rollRateRadPerSec * SIM_DT_SECONDS, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
     }
 
     /**
-     * Applies a small yaw response from tangential impact velocity so rotation comes from collisions.
+     * Applies a small yaw response from tangential impact velocity so rotation
+     * comes from collisions.
      */
     private Pose2d applyCollisionYawResponse(Pose2d before, Pose2d corrected, ChassisSpeeds speeds) {
       Translation2d correction = corrected.getTranslation().minus(before.getTranslation());
@@ -577,18 +577,18 @@ public class Handler {
       }
 
       double tangentialSpeed = velocity.dot(tangent);
-      double yawStep =
-          MathUtil.clamp(
-              tangentialSpeed * normalSpeedIntoSurface * COLLISION_YAW_GAIN,
-              -MAX_COLLISION_YAW_STEP_RAD,
-              MAX_COLLISION_YAW_STEP_RAD);
+      double yawStep = MathUtil.clamp(
+          tangentialSpeed * normalSpeedIntoSurface * COLLISION_YAW_GAIN,
+          -MAX_COLLISION_YAW_STEP_RAD,
+          MAX_COLLISION_YAW_STEP_RAD);
       return new Pose2d(
           corrected.getTranslation(),
           corrected.getRotation().plus(new Rotation3d(0.0, 0.0, yawStep).toRotation2d()));
     }
 
     /**
-     * Injects collision-induced pitch/roll rate so impacts visibly tilt the chassis.
+     * Injects collision-induced pitch/roll rate so impacts visibly tilt the
+     * chassis.
      */
     private void applyCollisionTiltResponse(Pose2d before, Pose2d corrected, ChassisSpeeds speeds) {
       Translation2d correction = corrected.getTranslation().minus(before.getTranslation());
@@ -611,16 +611,14 @@ public class Handler {
 
       double tiltRateImpulse = normalSpeedIntoSurface * COLLISION_TILT_RATE_GAIN;
 
-      pitchRateRadPerSec =
-          MathUtil.clamp(
-              pitchRateRadPerSec - normalLongitudinal * tiltRateImpulse,
-              -MAX_COLLISION_TILT_RATE_RADPS,
-              MAX_COLLISION_TILT_RATE_RADPS);
-      rollRateRadPerSec =
-          MathUtil.clamp(
-              rollRateRadPerSec + normalLateral * tiltRateImpulse,
-              -MAX_COLLISION_TILT_RATE_RADPS,
-              MAX_COLLISION_TILT_RATE_RADPS);
+      pitchRateRadPerSec = MathUtil.clamp(
+          pitchRateRadPerSec - normalLongitudinal * tiltRateImpulse,
+          -MAX_COLLISION_TILT_RATE_RADPS,
+          MAX_COLLISION_TILT_RATE_RADPS);
+      rollRateRadPerSec = MathUtil.clamp(
+          rollRateRadPerSec + normalLateral * tiltRateImpulse,
+          -MAX_COLLISION_TILT_RATE_RADPS,
+          MAX_COLLISION_TILT_RATE_RADPS);
     }
 
     private boolean isNearHub(double xMeters, double yMeters) {
@@ -647,13 +645,12 @@ public class Handler {
 
       // Match fuel's XZ bump geometry: blue bump and mirrored red bump.
       double blueBump = triangularBump(xMeters, BUMP_ENTRY_X, BUMP_PEAK_X, BUMP_EXIT_X, BUMP_HEIGHT);
-      double redBump =
-          triangularBump(
-              xMeters,
-              FIELD_LENGTH_METERS - BUMP_EXIT_X,
-              FIELD_LENGTH_METERS - BUMP_PEAK_X,
-              FIELD_LENGTH_METERS - BUMP_ENTRY_X,
-              BUMP_HEIGHT);
+      double redBump = triangularBump(
+          xMeters,
+          FIELD_LENGTH_METERS - BUMP_EXIT_X,
+          FIELD_LENGTH_METERS - BUMP_PEAK_X,
+          FIELD_LENGTH_METERS - BUMP_ENTRY_X,
+          BUMP_HEIGHT);
       return Math.max(blueBump, redBump);
     }
 
@@ -677,7 +674,7 @@ public class Handler {
       return new Pose3d(
           pose.getX(),
           pose.getY(),
-          7,
+          chassisHeightMeters,
           new Rotation3d(rollRad, pitchRad, pose.getRotation().getRadians()));
     }
 
