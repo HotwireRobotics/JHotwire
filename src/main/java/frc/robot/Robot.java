@@ -117,9 +117,6 @@ public class Robot extends LoggedRobot {
     // Update field visualization.
     field.setRobotPose(container.drive.getPose());
     container.simulation.tick();
-
-    if (container.actuator.getExtension() < 0.01) container.actuator.extend();
-    if (container.actuator.getExtension() > 0.99) container.actuator.retract();
   }
 
   @Override

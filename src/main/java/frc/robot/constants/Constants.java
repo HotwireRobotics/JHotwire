@@ -94,7 +94,7 @@ public final class Constants {
 
     // Exponential smoothing factor for simulated motion, in [0, 1].
     // Higher values reach the target more quickly.
-    public static final double kSmoothing = 0.12;
+    public static final double kSmoothing = 0.5;
 
     // Closed-loop proportional gain for the leader motor.
     public static final double kP = 1.0;

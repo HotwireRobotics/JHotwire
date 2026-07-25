@@ -2,6 +2,7 @@ package frc.robot.applicable.simulation;
 
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.Second;
@@ -34,10 +35,6 @@ public class Handler {
 
   private static final Distance ROBOT_WIDTH_WITH_BUMPERS = Inches.of(34);
   private static final Distance ROBOT_LENGTH_WITH_BUMPERS = Inches.of(34);
-  private static final Distance BUMPER_HEIGHT = Inches.of(5);
-  private static final Distance BUMPER_CLEARANCE = Inches.of(2.5);
-  private static final Distance BUMPER_SQUISH_COMPLIANCE = Inches.of(0.25);
-  private static final double ROBOT_MASS_KG = 105.0 * 0.45359237;
 
   // Hopper count.
   private int counter = 0;
@@ -92,12 +89,8 @@ public class Handler {
     gamepieceSimulation.spawnStartingFuel();
 
     physics = new RobotCollisionPhysics(
-        ROBOT_LENGTH_WITH_BUMPERS,
-        ROBOT_LENGTH_WITH_BUMPERS,
-        BUMPER_HEIGHT,
-        BUMPER_CLEARANCE,
-        BUMPER_SQUISH_COMPLIANCE,
-        ROBOT_MASS_KG);
+        ROBOT_WIDTH_WITH_BUMPERS,
+        ROBOT_LENGTH_WITH_BUMPERS);
 
     // Register a robot for collision with fuel.
     gamepieceSimulation.registerRobot(
@@ -196,26 +189,20 @@ public class Handler {
     return radius.times(Constants.Mathematics.TAU).per(Second).times(velocity.in(RotationsPerSecond));
   }
 
+  /**
+   * Lightweight ride model for the visualized robot.
+   *
+   * <p>The drivetrain already owns the robot's 2D pose. This class adds only the
+   * "look": keeping the body inside the field and off the hub/trench colliders,
+   * and deriving a smooth ride height, pitch, and roll from the terrain under the
+   * wheels. Every visual quantity is driven toward a target with a first-order
+   * critically-damped filter, so there is no bouncing, no launching off crests,
+   * and no impulse spikes — it just settles.
+   */
   private static class RobotCollisionPhysics {
-    private static final double SIM_DT_SECONDS = 0.02;
-    private static final double MAX_LINEAR_ACCEL_MPS2 = 3.2;
-    private static final double MAX_ANGULAR_ACCEL_RADPS2 = 7.5;
-    private static final double MAX_ROBOT_TILT_RAD = Math.toRadians(24);
-    private static final double TERRAIN_PITCH_SIGN = -1.0;
-    private static final double TERRAIN_ROLL_SIGN = 1.0;
-    private static final double WHEEL_CONTACT_HEIGHT_TOLERANCE_METERS = 0.01;
-    private static final double CHASSIS_CONTACT_EPSILON_METERS = 0.0008;
-    private static final double GRAVITY_MPS2 = 7.1;
-    private static final double AIR_TILT_DAMPING = 0.65;
-    private static final double SUPPORT_LAUNCH_VELOCITY_GAIN = 1.45;
-    private static final double MAX_SUPPORT_LAUNCH_VELOCITY_MPS = 2.8;
-    private static final double TILT_STIFFNESS = 42.0;
-    private static final double TILT_DAMPING = 11.0;
-    private static final double COLLISION_YAW_GAIN = 0.22;
-    private static final double COLLISION_TILT_RATE_GAIN = 0.0208;
-    private static final double HUB_COLLISION_TILT_MULTIPLIER = 2.5;
-    private static final double MAX_COLLISION_TILT_RATE_RADPS = Math.toRadians(1200);
-    private static final double MAX_COLLISION_YAW_STEP_RAD = Math.toRadians(28.0);
+    private static final double DT = 0.02;
+
+    // Field terrain — the two mirrored bump lanes. Must match the fuel geometry.
     private static final double HUB_SIDE = 1.2;
     private static final double BUMP_ENTRY_X = 3.96;
     private static final double BUMP_PEAK_X = 4.61;
@@ -227,6 +214,16 @@ public class Handler {
     private static final double BUMP_HIGH_Y_MAX = FIELD_WIDTH_METERS - 1.57;
     private static final double TRENCH_WIDTH = 1.265;
     private static final double TRENCH_BLOCK_WIDTH = 0.305;
+
+    // Smoothing time constants (seconds): larger = smoother and lazier.
+    private static final double HEIGHT_TIME_CONSTANT = 0.07;
+    private static final double TILT_TIME_CONSTANT = 0.10;
+    private static final double ACCEL_TIME_CONSTANT = 0.12;
+
+    // Tilt limits and the (subtle) weight-transfer response to acceleration.
+    private static final double MAX_TILT_RAD = Math.toRadians(20);
+    private static final double MAX_INERTIAL_TILT_RAD = Math.toRadians(6);
+    private static final double ACCEL_TILT_GAIN = 0.012; // rad per m/s^2
 
     private final ColliderRect[] staticRectangles = {
         // Hub side walls.
@@ -251,131 +248,82 @@ public class Handler {
 
     private final double robotWidthMeters;
     private final double robotLengthMeters;
-    private final double bumperHeightMeters;
-    private final double bumperClearanceMeters;
-    private final double bumperComplianceMeters;
-    private final double robotMassKg;
-    private final double coefficientOfRestitution;
-    private final double tangentFrictionCoefficient;
-    private ChassisSpeeds previousSpeeds = new ChassisSpeeds();
+
+    // Smoothed visual state.
+    private double heightMeters = 0.0;
     private double pitchRad = 0.0;
     private double rollRad = 0.0;
-    private double pitchRateRadPerSec = 0.0;
-    private double rollRateRadPerSec = 0.0;
-    private double chassisHeightMeters = 0.0;
-    private double chassisVerticalVelocityMps = 0.0;
-    private boolean allWheelsGrounded = true;
-    private boolean chassisAirborne = false;
-    private double previousSupportHeightMeters = 0.0;
 
-    private RobotCollisionPhysics(
-        Distance robotWidth,
-        Distance robotLength,
-        Distance bumperHeight,
-        Distance bumperClearance,
-        Distance bumperCompliance,
-        double robotMassKg) {
-      this.robotWidthMeters = robotWidth.in(edu.wpi.first.units.Units.Meters);
-      this.robotLengthMeters = robotLength.in(edu.wpi.first.units.Units.Meters);
-      this.bumperHeightMeters = bumperHeight.in(edu.wpi.first.units.Units.Meters);
-      this.bumperClearanceMeters = bumperClearance.in(edu.wpi.first.units.Units.Meters);
-      this.bumperComplianceMeters = bumperCompliance.in(edu.wpi.first.units.Units.Meters);
-      this.robotMassKg = robotMassKg;
-      // Slight bumper squish: mostly inelastic with little bounce.
-      this.coefficientOfRestitution = 0.12;
-      this.tangentFrictionCoefficient = 0.65;
+    // Filtered robot-frame acceleration, for weight-transfer tilt.
+    private double filteredLongAccel = 0.0;
+    private double filteredLatAccel = 0.0;
+    private ChassisSpeeds previousSpeeds = new ChassisSpeeds();
+
+    private RobotCollisionPhysics(Distance robotWidth, Distance robotLength) {
+      this.robotWidthMeters = robotWidth.in(Meters);
+      this.robotLengthMeters = robotLength.in(Meters);
     }
 
     /**
-     * Enforces collisions with field boundaries and hub keep-out zones.
+     * First-order smoothing factor for a given time constant. Guarantees a stable,
+     * overshoot-free approach toward the target each tick.
+     */
+    private static double approach(double timeConstant) {
+      return 1.0 - Math.exp(-DT / timeConstant);
+    }
+
+    /**
+     * Keeps the robot inside the field and out of the hub/trench colliders, then
+     * updates the smoothed ride height and tilt.
      */
     private void resolveFieldBoundaryCollision(
         Pose2d pose, ChassisSpeeds speeds, Consumer<Pose2d> poseSetter) {
       double halfLength = robotLengthMeters / 2.0;
       double halfWidth = robotWidthMeters / 2.0;
-      double heading = pose.getRotation().getRadians();
 
-      // Project oriented half extents into field X/Y axes for an AABB-safe boundary
-      // clamp.
-      double projectedHalfX = Math.abs(Math.cos(heading)) * halfLength + Math.abs(Math.sin(heading)) * halfWidth;
-      double projectedHalfY = Math.abs(Math.sin(heading)) * halfLength + Math.abs(Math.cos(heading)) * halfWidth;
-      double complianceX = Math.min(projectedHalfX * 0.4, bumperComplianceMeters);
-      double complianceY = Math.min(projectedHalfY * 0.4, bumperComplianceMeters);
+      Pose2d corrected = clampToField(pose, halfLength, halfWidth);
+      corrected = resolveStaticColliders(corrected, halfLength, halfWidth);
 
-      double clampedX = MathUtil.clamp(
-          pose.getX(),
-          projectedHalfX - complianceX * 0.05,
-          FIELD_LENGTH_METERS - projectedHalfX + complianceX * 0.05);
-      double clampedY = MathUtil.clamp(
-          pose.getY(),
-          projectedHalfY - complianceY * 0.05,
-          FIELD_WIDTH_METERS - projectedHalfY + complianceY * 0.05);
-
-      boolean hitXWall = Math.abs(clampedX - pose.getX()) > 1e-6;
-      boolean hitYWall = Math.abs(clampedY - pose.getY()) > 1e-6;
-      Pose2d correctedPose = new Pose2d(clampedX, clampedY, pose.getRotation());
-      correctedPose = resolveStaticColliders(correctedPose, halfLength, halfWidth, 8);
-
-      boolean correctedByCollider = correctedPose.getTranslation().getDistance(pose.getTranslation()) > 1e-6;
-      applyCollisionTiltResponse(pose, correctedPose, speeds);
-      correctedPose = applyCollisionYawResponse(pose, correctedPose, speeds);
-      if (hitXWall || hitYWall || correctedByCollider) {
-        poseSetter.accept(correctedPose);
+      boolean movedByCollision = corrected.getTranslation().getDistance(pose.getTranslation()) > 1e-6;
+      if (movedByCollision) {
+        poseSetter.accept(corrected);
       }
 
-      double normalImpactSpeed = Math.hypot(hitXWall ? speeds.vxMetersPerSecond : 0.0,
-          hitYWall ? speeds.vyMetersPerSecond : 0.0);
-      double normalImpulseNewtonSeconds = robotMassKg * (1.0 + coefficientOfRestitution) * normalImpactSpeed;
-      double tangentImpactSpeed = Math.hypot(hitYWall ? speeds.vxMetersPerSecond : 0.0,
-          hitXWall ? speeds.vyMetersPerSecond : 0.0);
-      double frictionImpulseNewtonSeconds = robotMassKg * tangentFrictionCoefficient * tangentImpactSpeed;
-      double linearAccelerationMps2 = Math.hypot(
-          speeds.vxMetersPerSecond - previousSpeeds.vxMetersPerSecond,
-          speeds.vyMetersPerSecond - previousSpeeds.vyMetersPerSecond)
-          / SIM_DT_SECONDS;
-      double angularAccelerationRadps2 = Math.abs(speeds.omegaRadiansPerSecond - previousSpeeds.omegaRadiansPerSecond)
-          / SIM_DT_SECONDS;
-      double ax = (speeds.vxMetersPerSecond - previousSpeeds.vxMetersPerSecond) / SIM_DT_SECONDS;
-      double ay = (speeds.vyMetersPerSecond - previousSpeeds.vyMetersPerSecond) / SIM_DT_SECONDS;
-      updateRobotTilt(correctedPose, ax, ay);
+      updateRide(corrected, speeds);
       previousSpeeds = speeds;
 
-      Logger.recordOutput("Simulation/RobotCollision/HitWallX", hitXWall || correctedByCollider);
-      Logger.recordOutput("Simulation/RobotCollision/HitWallY", hitYWall || correctedByCollider);
-      Logger.recordOutput("Simulation/RobotCollision/BumperHeightMeters", bumperHeightMeters);
-      Logger.recordOutput("Simulation/RobotCollision/BumperClearanceMeters", bumperClearanceMeters);
-      Logger.recordOutput("Simulation/RobotCollision/BumperComplianceMeters", bumperComplianceMeters);
-      Logger.recordOutput("Simulation/RobotCollision/MassKg", robotMassKg);
-      Logger.recordOutput("Simulation/RobotCollision/Restitution", coefficientOfRestitution);
-      Logger.recordOutput(
-          "Simulation/RobotCollision/ImpactSpeedMps",
-          normalImpactSpeed);
-      Logger.recordOutput(
-          "Simulation/RobotCollision/NormalImpulseNs",
-          normalImpulseNewtonSeconds);
-      Logger.recordOutput(
-          "Simulation/RobotCollision/FrictionImpulseNs",
-          frictionImpulseNewtonSeconds);
-      Logger.recordOutput(
-          "Simulation/RobotPhysics/LinearAccelerationMps2",
-          Math.min(linearAccelerationMps2, MAX_LINEAR_ACCEL_MPS2));
-      Logger.recordOutput(
-          "Simulation/RobotPhysics/AngularAccelerationRadps2",
-          Math.min(angularAccelerationRadps2, MAX_ANGULAR_ACCEL_RADPS2));
+      Logger.recordOutput("Simulation/RobotCollision/Corrected", movedByCollision);
+      Logger.recordOutput("Simulation/RobotPhysics/HeightMeters", heightMeters);
       Logger.recordOutput("Simulation/RobotPhysics/PitchDeg", Math.toDegrees(pitchRad));
       Logger.recordOutput("Simulation/RobotPhysics/RollDeg", Math.toDegrees(rollRad));
       Logger.recordOutput("Simulation/RobotPhysics/OnBump",
-          getTerrainHeight(correctedPose.getX(), correctedPose.getY()) > 1e-3);
+          getTerrainHeight(corrected.getX(), corrected.getY()) > 1e-3);
     }
 
     /**
-     * Applies all static colliders currently used by fuel interactions to the robot
-     * body.
+     * Clamps the oriented robot's center so its projected footprint stays within
+     * the field walls.
      */
-    private Pose2d resolveStaticColliders(
-        Pose2d pose, double halfLength, double halfWidth, int passes) {
+    private Pose2d clampToField(Pose2d pose, double halfLength, double halfWidth) {
+      double heading = pose.getRotation().getRadians();
+      double projectedHalfX = Math.abs(Math.cos(heading)) * halfLength + Math.abs(Math.sin(heading)) * halfWidth;
+      double projectedHalfY = Math.abs(Math.sin(heading)) * halfLength + Math.abs(Math.cos(heading)) * halfWidth;
+
+      double clampedX = MathUtil.clamp(pose.getX(), projectedHalfX, FIELD_LENGTH_METERS - projectedHalfX);
+      double clampedY = MathUtil.clamp(pose.getY(), projectedHalfY, FIELD_WIDTH_METERS - projectedHalfY);
+      if (clampedX == pose.getX() && clampedY == pose.getY()) {
+        return pose;
+      }
+      return new Pose2d(clampedX, clampedY, pose.getRotation());
+    }
+
+    /**
+     * Pushes the robot out of any static collider it overlaps, iterating a few
+     * times so simultaneous overlaps resolve.
+     */
+    private Pose2d resolveStaticColliders(Pose2d pose, double halfLength, double halfWidth) {
       Pose2d corrected = pose;
-      for (int pass = 0; pass < passes; pass++) {
+      for (int pass = 0; pass < 8; pass++) {
         boolean changed = false;
         for (ColliderRect rect : staticRectangles) {
           Pose2d before = corrected;
@@ -392,18 +340,11 @@ public class Handler {
     }
 
     /**
-     * Uses SAT-style extents in field axes for an oriented-robot vs
-     * axis-aligned-rect collision test.
+     * Minimum-translation push-out of the oriented robot footprint from an
+     * axis-aligned collider rectangle.
      */
     private Pose2d resolveRectangleCollision(
         Pose2d pose, ColliderRect rect, double halfLength, double halfWidth) {
-      // Let robots traverse bump lanes without trench block sidewalls hard-locking
-      // movement.
-      // if (isTrenchBlockRect(rect) && isInBumpTraversalWindow(pose, halfLength,
-      // halfWidth)) {
-      // return pose;
-      // }
-
       double heading = pose.getRotation().getRadians();
       double projectedHalfX = Math.abs(Math.cos(heading)) * halfLength + Math.abs(Math.sin(heading)) * halfWidth;
       double projectedHalfY = Math.abs(Math.sin(heading)) * halfLength + Math.abs(Math.cos(heading)) * halfWidth;
@@ -417,233 +358,99 @@ public class Handler {
         return pose;
       }
 
+      // Choose the smallest of the four axis push-outs.
       double pushLeft = rect.xMin - right;
       double pushRight = rect.xMax - left;
       double pushDown = rect.yMin - top;
       double pushUp = rect.yMax - bottom;
 
-      Translation2d correction = new Translation2d(pushLeft, 0.0);
-      if (Math.abs(pushRight) < Math.abs(correction.getX())) {
-        correction = new Translation2d(pushRight, 0.0);
+      double dx = 0.0;
+      double dy = 0.0;
+      double best = Math.abs(pushLeft);
+      dx = pushLeft;
+      if (Math.abs(pushRight) < best) {
+        best = Math.abs(pushRight);
+        dx = pushRight;
+        dy = 0.0;
       }
-      if (Math.abs(pushDown) < Math.abs(correction.getNorm())) {
-        correction = new Translation2d(0.0, pushDown);
+      if (Math.abs(pushDown) < best) {
+        best = Math.abs(pushDown);
+        dx = 0.0;
+        dy = pushDown;
       }
-      if (Math.abs(pushUp) < Math.abs(correction.getNorm())) {
-        correction = new Translation2d(0.0, pushUp);
+      if (Math.abs(pushUp) < best) {
+        dx = 0.0;
+        dy = pushUp;
       }
 
-      return new Pose2d(
-          pose.getX() + correction.getX(),
-          pose.getY() + correction.getY(),
-          pose.getRotation());
-    }
-
-    private boolean isTrenchBlockRect(ColliderRect rect) {
-      double eps = 1e-6;
-      boolean blueBlock = Math.abs(rect.yMin - TRENCH_WIDTH) < eps;
-      boolean redBlock = Math.abs(rect.yMin - (FIELD_WIDTH_METERS - 1.57)) < eps;
-      return blueBlock || redBlock;
-    }
-
-    private boolean isInBumpTraversalWindow(Pose2d pose, double halfLength, double halfWidth) {
-      double xMinBlue = BUMP_ENTRY_X - halfLength;
-      double xMaxBlue = BUMP_EXIT_X + halfLength;
-      double xMinRed = FIELD_LENGTH_METERS - BUMP_EXIT_X - halfLength;
-      double xMaxRed = FIELD_LENGTH_METERS - BUMP_ENTRY_X + halfLength;
-      boolean nearBlueBumpX = pose.getX() >= xMinBlue && pose.getX() <= xMaxBlue;
-      boolean nearRedBumpX = pose.getX() >= xMinRed && pose.getX() <= xMaxRed;
-
-      double yMinLow = BUMP_LOW_Y_MIN - halfWidth;
-      double yMaxLow = BUMP_LOW_Y_MAX + halfWidth;
-      double yMinHigh = BUMP_HIGH_Y_MIN - halfWidth;
-      double yMaxHigh = BUMP_HIGH_Y_MAX + halfWidth;
-      boolean onLowLane = pose.getY() >= yMinLow && pose.getY() <= yMaxLow;
-      boolean onHighLane = pose.getY() >= yMinHigh && pose.getY() <= yMaxHigh;
-
-      return (nearBlueBumpX || nearRedBumpX) && (onLowLane || onHighLane);
+      return new Pose2d(pose.getX() + dx, pose.getY() + dy, pose.getRotation());
     }
 
     /**
-     * Updates pitch and roll from terrain gradient and inertial load transfer.
+     * Derives target ride height and tilt from the terrain under each wheel plus a
+     * subtle acceleration weight-transfer, then eases the smoothed state toward it.
      */
-    private void updateRobotTilt(Pose2d pose, double ax, double ay) {
+    private void updateRide(Pose2d pose, ChassisSpeeds speeds) {
       double heading = pose.getRotation().getRadians();
-      double headingCos = Math.cos(heading);
-      double headingSin = Math.sin(heading);
+      double cos = Math.cos(heading);
+      double sin = Math.sin(heading);
       double halfLength = robotLengthMeters / 2.0;
       double halfWidth = robotWidthMeters / 2.0;
 
-      Translation2d frontOffset = new Translation2d(headingCos * halfLength, headingSin * halfLength);
-      Translation2d sideOffset = new Translation2d(-headingSin * halfWidth, headingCos * halfWidth);
-      Translation2d center = pose.getTranslation();
+      // Forward and left body-axis offsets to the four wheel contact points.
+      double fx = cos * halfLength;
+      double fy = sin * halfLength;
+      double lx = -sin * halfWidth;
+      double ly = cos * halfWidth;
+      double cx = pose.getX();
+      double cy = pose.getY();
 
-      double frontLeftHeight = getTerrainHeight(center.plus(frontOffset).plus(sideOffset).getX(),
-          center.plus(frontOffset).plus(sideOffset).getY());
-      double frontRightHeight = getTerrainHeight(center.plus(frontOffset).minus(sideOffset).getX(),
-          center.plus(frontOffset).minus(sideOffset).getY());
-      double rearLeftHeight = getTerrainHeight(center.minus(frontOffset).plus(sideOffset).getX(),
-          center.minus(frontOffset).plus(sideOffset).getY());
-      double rearRightHeight = getTerrainHeight(center.minus(frontOffset).minus(sideOffset).getX(),
-          center.minus(frontOffset).minus(sideOffset).getY());
+      double frontLeft = getTerrainHeight(cx + fx + lx, cy + fy + ly);
+      double frontRight = getTerrainHeight(cx + fx - lx, cy + fy - ly);
+      double rearLeft = getTerrainHeight(cx - fx + lx, cy - fy + ly);
+      double rearRight = getTerrainHeight(cx - fx - lx, cy - fy - ly);
 
-      double maxWheelHeight = Math.max(Math.max(frontLeftHeight, frontRightHeight),
-          Math.max(rearLeftHeight, rearRightHeight));
-      double minWheelHeight = Math.min(Math.min(frontLeftHeight, frontRightHeight),
-          Math.min(rearLeftHeight, rearRightHeight));
-      double wheelHeightSpread = maxWheelHeight - minWheelHeight;
-      allWheelsGrounded = wheelHeightSpread <= WHEEL_CONTACT_HEIGHT_TOLERANCE_METERS;
+      double frontAvg = (frontLeft + frontRight) * 0.5;
+      double rearAvg = (rearLeft + rearRight) * 0.5;
+      double leftAvg = (frontLeft + rearLeft) * 0.5;
+      double rightAvg = (frontRight + rearRight) * 0.5;
 
-      double frontAvg = (frontLeftHeight + frontRightHeight) * 0.5;
-      double rearAvg = (rearLeftHeight + rearRightHeight) * 0.5;
-      double leftAvg = (frontLeftHeight + rearLeftHeight) * 0.5;
-      double rightAvg = (frontRightHeight + rearRightHeight) * 0.5;
+      double targetHeight = (frontLeft + frontRight + rearLeft + rearRight) * 0.25;
+      double terrainPitch = -Math.atan2(frontAvg - rearAvg, robotLengthMeters);
+      double terrainRoll = Math.atan2(leftAvg - rightAvg, robotWidthMeters);
 
-      double terrainPitch = TERRAIN_PITCH_SIGN * Math.atan2(frontAvg - rearAvg, robotLengthMeters);
-      double terrainRoll = TERRAIN_ROLL_SIGN * Math.atan2(leftAvg - rightAvg, robotWidthMeters);
-      double targetHeight = Math.max(0.0, (frontAvg + rearAvg) * 0.5);
-      double supportVelocityMps = (targetHeight - previousSupportHeightMeters) / SIM_DT_SECONDS;
-      previousSupportHeightMeters = targetHeight;
+      // Filtered robot-frame acceleration (ChassisSpeeds are robot-relative).
+      double longAccel = (speeds.vxMetersPerSecond - previousSpeeds.vxMetersPerSecond) / DT;
+      double latAccel = (speeds.vyMetersPerSecond - previousSpeeds.vyMetersPerSecond) / DT;
+      double accelBlend = approach(ACCEL_TIME_CONSTANT);
+      filteredLongAccel += (longAccel - filteredLongAccel) * accelBlend;
+      filteredLatAccel += (latAccel - filteredLatAccel) * accelBlend;
 
-      double longitudinalAccel = ax * headingCos + ay * headingSin;
-      double lateralAccel = -ax * headingSin + ay * headingCos;
+      double inertialPitch = MathUtil.clamp(
+          -filteredLongAccel * ACCEL_TILT_GAIN, -MAX_INERTIAL_TILT_RAD, MAX_INERTIAL_TILT_RAD);
+      double inertialRoll = MathUtil.clamp(
+          filteredLatAccel * ACCEL_TILT_GAIN, -MAX_INERTIAL_TILT_RAD, MAX_INERTIAL_TILT_RAD);
 
-      double inertialPitch = MathUtil.clamp(-longitudinalAccel / 9.81 * 0.18, -0.16, 0.16);
-      double inertialRoll = MathUtil.clamp(lateralAccel / 9.81 * 0.22, -0.20, 0.20);
+      double targetPitch = MathUtil.clamp(terrainPitch + inertialPitch, -MAX_TILT_RAD, MAX_TILT_RAD);
+      double targetRoll = MathUtil.clamp(terrainRoll + inertialRoll, -MAX_TILT_RAD, MAX_TILT_RAD);
 
-      double targetPitch = MathUtil.clamp(terrainPitch + inertialPitch, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
-      double targetRoll = MathUtil.clamp(terrainRoll + inertialRoll, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
-
-      // Vertical rigid-body dynamics: gravity + moving support from terrain.
-      chassisVerticalVelocityMps -= GRAVITY_MPS2 * SIM_DT_SECONDS;
-      chassisHeightMeters += chassisVerticalVelocityMps * SIM_DT_SECONDS;
-      if (chassisHeightMeters <= targetHeight + CHASSIS_CONTACT_EPSILON_METERS) {
-        chassisHeightMeters = targetHeight;
-        double launchVelocity = Math.min(
-            supportVelocityMps * SUPPORT_LAUNCH_VELOCITY_GAIN,
-            MAX_SUPPORT_LAUNCH_VELOCITY_MPS);
-        if (launchVelocity > chassisVerticalVelocityMps) {
-          // Preserve momentum over crest transitions so the robot can "jump".
-          chassisVerticalVelocityMps = launchVelocity;
-        } else if (chassisVerticalVelocityMps < 0.0) {
-          chassisVerticalVelocityMps = 0.0;
-        }
-      }
-      chassisAirborne = chassisHeightMeters > targetHeight + CHASSIS_CONTACT_EPSILON_METERS;
-
-      if (allWheelsGrounded && !chassisAirborne) {
-        // Flat 4-wheel contact: rigid chassis should not wobble around.
-        pitchRad = 0.0;
-        rollRad = 0.0;
-        pitchRateRadPerSec = 0.0;
-        rollRateRadPerSec = 0.0;
-        return;
-      }
-
-      // Rigid-body angular inertia over uneven terrain and in-air segments.
-      double pitchAccel;
-      double rollAccel;
-      if (chassisAirborne) {
-        pitchAccel = -AIR_TILT_DAMPING * pitchRateRadPerSec;
-        rollAccel = -AIR_TILT_DAMPING * rollRateRadPerSec;
-      } else {
-        pitchAccel = TILT_STIFFNESS * (targetPitch - pitchRad) - TILT_DAMPING * pitchRateRadPerSec;
-        rollAccel = TILT_STIFFNESS * (targetRoll - rollRad) - TILT_DAMPING * rollRateRadPerSec;
-      }
-      pitchRateRadPerSec += pitchAccel * SIM_DT_SECONDS;
-      rollRateRadPerSec += rollAccel * SIM_DT_SECONDS;
-      pitchRad = MathUtil.clamp(
-          pitchRad + pitchRateRadPerSec * SIM_DT_SECONDS, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
-      rollRad = MathUtil.clamp(
-          rollRad + rollRateRadPerSec * SIM_DT_SECONDS, -MAX_ROBOT_TILT_RAD, MAX_ROBOT_TILT_RAD);
+      // Critically-damped ease toward the targets: smooth, no overshoot.
+      heightMeters += (targetHeight - heightMeters) * approach(HEIGHT_TIME_CONSTANT);
+      pitchRad += (targetPitch - pitchRad) * approach(TILT_TIME_CONSTANT);
+      rollRad += (targetRoll - rollRad) * approach(TILT_TIME_CONSTANT);
     }
 
     /**
-     * Applies a small yaw response from tangential impact velocity so rotation
-     * comes from collisions.
-     */
-    private Pose2d applyCollisionYawResponse(Pose2d before, Pose2d corrected, ChassisSpeeds speeds) {
-      Translation2d correction = corrected.getTranslation().minus(before.getTranslation());
-      if (correction.getNorm() < 1e-8) {
-        return corrected;
-      }
-
-      Translation2d normal = correction.div(correction.getNorm());
-      Translation2d tangent = new Translation2d(-normal.getY(), normal.getX());
-      Translation2d velocity = new Translation2d(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
-      double normalSpeedIntoSurface = Math.max(0.0, -velocity.dot(normal));
-      if (normalSpeedIntoSurface < 1e-3) {
-        return corrected;
-      }
-
-      double tangentialSpeed = velocity.dot(tangent);
-      double yawStep = MathUtil.clamp(
-          tangentialSpeed * normalSpeedIntoSurface * COLLISION_YAW_GAIN,
-          -MAX_COLLISION_YAW_STEP_RAD,
-          MAX_COLLISION_YAW_STEP_RAD);
-      return new Pose2d(
-          corrected.getTranslation(),
-          corrected.getRotation().plus(new Rotation3d(0.0, 0.0, yawStep).toRotation2d()));
-    }
-
-    /**
-     * Injects collision-induced pitch/roll rate so impacts visibly tilt the
-     * chassis.
-     */
-    private void applyCollisionTiltResponse(Pose2d before, Pose2d corrected, ChassisSpeeds speeds) {
-      Translation2d correction = corrected.getTranslation().minus(before.getTranslation());
-      if (correction.getNorm() < 1e-8) {
-        return;
-      }
-
-      Translation2d normal = correction.div(correction.getNorm());
-      Translation2d velocity = new Translation2d(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
-      double normalSpeedIntoSurface = Math.max(0.0, -velocity.dot(normal));
-      if (normalSpeedIntoSurface < 1e-3) {
-        return;
-      }
-
-      double heading = corrected.getRotation().getRadians();
-      double headingCos = Math.cos(heading);
-      double headingSin = Math.sin(heading);
-      double normalLongitudinal = normal.getX() * headingCos + normal.getY() * headingSin;
-      double normalLateral = -normal.getX() * headingSin + normal.getY() * headingCos;
-
-      double tiltRateImpulse = normalSpeedIntoSurface * COLLISION_TILT_RATE_GAIN;
-
-      pitchRateRadPerSec = MathUtil.clamp(
-          pitchRateRadPerSec - normalLongitudinal * tiltRateImpulse,
-          -MAX_COLLISION_TILT_RATE_RADPS,
-          MAX_COLLISION_TILT_RATE_RADPS);
-      rollRateRadPerSec = MathUtil.clamp(
-          rollRateRadPerSec + normalLateral * tiltRateImpulse,
-          -MAX_COLLISION_TILT_RATE_RADPS,
-          MAX_COLLISION_TILT_RATE_RADPS);
-    }
-
-    private boolean isNearHub(double xMeters, double yMeters) {
-      double blueHubDx = xMeters - 4.61;
-      double blueHubDy = yMeters - FIELD_WIDTH_METERS / 2.0;
-      double redHubDx = xMeters - (FIELD_LENGTH_METERS - 4.61);
-      double redHubDy = yMeters - FIELD_WIDTH_METERS / 2.0;
-      double nearRadius = HUB_SIDE * 0.85;
-      return Math.hypot(blueHubDx, blueHubDy) <= nearRadius || Math.hypot(redHubDx, redHubDy) <= nearRadius;
-    }
-
-    /**
-     * Terrain profile used for driveline pitch/roll response and bump traversal.
+     * Terrain height at a field point: zero everywhere except on the two mirrored
+     * bump lanes.
      */
     private double getTerrainHeight(double xMeters, double yMeters) {
-      if (yMeters < -0.2 || yMeters > FIELD_WIDTH_METERS + 0.2) {
-        return 0.0;
-      }
       boolean onLowLane = yMeters >= BUMP_LOW_Y_MIN && yMeters <= BUMP_LOW_Y_MAX;
       boolean onHighLane = yMeters >= BUMP_HIGH_Y_MIN && yMeters <= BUMP_HIGH_Y_MAX;
       if (!onLowLane && !onHighLane) {
         return 0.0;
       }
 
-      // Match fuel's XZ bump geometry: blue bump and mirrored red bump.
       double blueBump = triangularBump(xMeters, BUMP_ENTRY_X, BUMP_PEAK_X, BUMP_EXIT_X, BUMP_HEIGHT);
       double redBump = triangularBump(
           xMeters,
@@ -654,9 +461,7 @@ public class Handler {
       return Math.max(blueBump, redBump);
     }
 
-    /**
-     * Piecewise-linear triangular bump from x1 -> x2 -> x3.
-     */
+    /** Piecewise-linear triangular bump rising x1 -> x2 and falling x2 -> x3. */
     private double triangularBump(double x, double x1, double x2, double x3, double peak) {
       if (x <= x1 || x >= x3) {
         return 0.0;
@@ -667,14 +472,12 @@ public class Handler {
       return peak * (x3 - x) / (x3 - x2);
     }
 
-    /**
-     * Pose3d composed from 2d odometry plus simulated terrain tilt.
-     */
+    /** Composes the 2D odometry pose with the smoothed ride height and tilt. */
     private Pose3d getRobotPose3d(Pose2d pose) {
       return new Pose3d(
           pose.getX(),
           pose.getY(),
-          chassisHeightMeters,
+          heightMeters,
           new Rotation3d(rollRad, pitchRad, pose.getRotation().getRadians()));
     }
 

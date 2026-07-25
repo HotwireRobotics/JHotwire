@@ -69,7 +69,7 @@ public class Drivetrain extends Drive {
     Pose2d robotPose = getPose();
     Pose2d pointer = Constants.Poses.pointer.getPose();
 
-    pointer = (getSide().equals(Side.RIGHT)) ? pointer : Constants.mirror(pointer);
+    pointer = (getSide().equals(Side.LEFT)) ? pointer : Constants.mirror(pointer);
     
     // Pose differences.
     double dx = pointer.getX() - robotPose.getX();
@@ -79,7 +79,7 @@ public class Drivetrain extends Drive {
     Angle toPass = (Radians.of(Math.IEEEremainder(Math.atan2(dy, dx), Constants.Mathematics.TAU)));
     
     // Update drive target.
-    setRotationTarget(new Rotation2d(toPass));
+    setRotationTarget(new Rotation2d(toPass).rotateBy(Rotation2d.k180deg));
 
     return getRotationTarget();
   }
