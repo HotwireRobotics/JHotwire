@@ -92,20 +92,24 @@ public class RobotContainer {
     final Command stopDrive = Commands.runOnce(() -> drive.stop());
     final Command lockDrive = Commands.runOnce(() -> drive.stopWithX());
 
-    // Declare intake pathplanner events.
-    final Command startIntaking = intake.run();
-    final Command stopIntaking = intake.stop();
-    NamedCommands.registerCommand("Start Intaking", startIntaking);
-    NamedCommands.registerCommand("Stop Intaking",   stopIntaking);
+    NamedCommands.registerCommand("Start Intaking", intake.run().withTimeout(0.1));
+    NamedCommands.registerCommand("Stop Intaking",  intake.stop().withTimeout(0.1));
 
-    // Declare shooter pathplanner events.
-    final Command startShooting = shooter.run();
-    final Command stopShooting = shooter.stop();
-    NamedCommands.registerCommand("Start Shooting", startShooting);
-    NamedCommands.registerCommand("Stop Shooting",   stopShooting);
+    // Actuator (intake deployment) auto markers.
+    NamedCommands.registerCommand("Lower Intake", Commands.runOnce(actuator::extend));
+    NamedCommands.registerCommand("Drop Arm",     Commands.runOnce(actuator::extend));
 
+    NamedCommands.registerCommand("Intake Period",   Commands.none());
+    NamedCommands.registerCommand("Occilate Intake", Commands.none());
+
+    // Shooter auto markers (non-blocking, same reasoning as the intake).
+    NamedCommands.registerCommand("Start Shooting", shooter.run().withTimeout(0.1));
+    NamedCommands.registerCommand("Stop Shooting",  shooter.stop().withTimeout(0.1));
+
+    // Firing sequence: spin the shooter for the firing duration, then stop.
     NamedCommands.registerCommand("Firing Sequence", Commands.sequence(
-      startShooting, Commands.waitTime(Constants.Shooter.kFiringTime), stopShooting));
+      shooter.run().withTimeout(Constants.Shooter.kFiringTime),
+      shooter.stop().withTimeout(0.1)));
 
     // Autonomous
     if (!Constants.mode.equals(Mode.COMPETITION)) {

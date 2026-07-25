@@ -21,6 +21,7 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
@@ -165,7 +166,7 @@ public class Handler {
                 getWristPitch(),
                 Rotations.of(0)))
     });
-    physics.resolveFieldBoundaryCollision(pose.get(), chassisSpeeds.get(), supp);
+    physics.resolveFieldBoundaryCollision(pose.get(), supp);
   }
 
   public void restart() {
@@ -218,12 +219,9 @@ public class Handler {
     // Smoothing time constants (seconds): larger = smoother and lazier.
     private static final double HEIGHT_TIME_CONSTANT = 0.07;
     private static final double TILT_TIME_CONSTANT = 0.10;
-    private static final double ACCEL_TIME_CONSTANT = 0.12;
 
-    // Tilt limits and the (subtle) weight-transfer response to acceleration.
+    // Maximum body tilt on terrain.
     private static final double MAX_TILT_RAD = Math.toRadians(20);
-    private static final double MAX_INERTIAL_TILT_RAD = Math.toRadians(6);
-    private static final double ACCEL_TILT_GAIN = 0.012; // rad per m/s^2
 
     private final ColliderRect[] staticRectangles = {
         // Hub side walls.
@@ -254,11 +252,6 @@ public class Handler {
     private double pitchRad = 0.0;
     private double rollRad = 0.0;
 
-    // Filtered robot-frame acceleration, for weight-transfer tilt.
-    private double filteredLongAccel = 0.0;
-    private double filteredLatAccel = 0.0;
-    private ChassisSpeeds previousSpeeds = new ChassisSpeeds();
-
     private RobotCollisionPhysics(Distance robotWidth, Distance robotLength) {
       this.robotWidthMeters = robotWidth.in(Meters);
       this.robotLengthMeters = robotLength.in(Meters);
@@ -277,20 +270,21 @@ public class Handler {
      * updates the smoothed ride height and tilt.
      */
     private void resolveFieldBoundaryCollision(
-        Pose2d pose, ChassisSpeeds speeds, Consumer<Pose2d> poseSetter) {
+        Pose2d pose, Consumer<Pose2d> poseSetter) {
       double halfLength = robotLengthMeters / 2.0;
       double halfWidth = robotWidthMeters / 2.0;
 
       Pose2d corrected = clampToField(pose, halfLength, halfWidth);
       corrected = resolveStaticColliders(corrected, halfLength, halfWidth);
 
+      // Only nudge the drivetrain pose in teleop. Resetting odometry mid-path
+      // would fight the autonomous follower, so leave it alone during auto.
       boolean movedByCollision = corrected.getTranslation().getDistance(pose.getTranslation()) > 1e-6;
-      if (movedByCollision) {
+      if (movedByCollision && !DriverStation.isAutonomousEnabled()) {
         poseSetter.accept(corrected);
       }
 
-      updateRide(corrected, speeds);
-      previousSpeeds = speeds;
+      updateRide(corrected);
 
       Logger.recordOutput("Simulation/RobotCollision/Corrected", movedByCollision);
       Logger.recordOutput("Simulation/RobotPhysics/HeightMeters", heightMeters);
@@ -387,10 +381,11 @@ public class Handler {
     }
 
     /**
-     * Derives target ride height and tilt from the terrain under each wheel plus a
-     * subtle acceleration weight-transfer, then eases the smoothed state toward it.
+     * Derives target ride height and tilt purely from the terrain under each wheel,
+     * then eases the smoothed state toward it. On flat ground the target is dead
+     * flat, so driving never induces wobble.
      */
-    private void updateRide(Pose2d pose, ChassisSpeeds speeds) {
+    private void updateRide(Pose2d pose) {
       double heading = pose.getRotation().getRadians();
       double cos = Math.cos(heading);
       double sin = Math.sin(heading);
@@ -416,23 +411,10 @@ public class Handler {
       double rightAvg = (frontRight + rearRight) * 0.5;
 
       double targetHeight = (frontLeft + frontRight + rearLeft + rearRight) * 0.25;
-      double terrainPitch = -Math.atan2(frontAvg - rearAvg, robotLengthMeters);
-      double terrainRoll = Math.atan2(leftAvg - rightAvg, robotWidthMeters);
-
-      // Filtered robot-frame acceleration (ChassisSpeeds are robot-relative).
-      double longAccel = (speeds.vxMetersPerSecond - previousSpeeds.vxMetersPerSecond) / DT;
-      double latAccel = (speeds.vyMetersPerSecond - previousSpeeds.vyMetersPerSecond) / DT;
-      double accelBlend = approach(ACCEL_TIME_CONSTANT);
-      filteredLongAccel += (longAccel - filteredLongAccel) * accelBlend;
-      filteredLatAccel += (latAccel - filteredLatAccel) * accelBlend;
-
-      double inertialPitch = MathUtil.clamp(
-          -filteredLongAccel * ACCEL_TILT_GAIN, -MAX_INERTIAL_TILT_RAD, MAX_INERTIAL_TILT_RAD);
-      double inertialRoll = MathUtil.clamp(
-          filteredLatAccel * ACCEL_TILT_GAIN, -MAX_INERTIAL_TILT_RAD, MAX_INERTIAL_TILT_RAD);
-
-      double targetPitch = MathUtil.clamp(terrainPitch + inertialPitch, -MAX_TILT_RAD, MAX_TILT_RAD);
-      double targetRoll = MathUtil.clamp(terrainRoll + inertialRoll, -MAX_TILT_RAD, MAX_TILT_RAD);
+      double targetPitch = MathUtil.clamp(
+          -Math.atan2(frontAvg - rearAvg, robotLengthMeters), -MAX_TILT_RAD, MAX_TILT_RAD);
+      double targetRoll = MathUtil.clamp(
+          Math.atan2(leftAvg - rightAvg, robotWidthMeters), -MAX_TILT_RAD, MAX_TILT_RAD);
 
       // Critically-damped ease toward the targets: smooth, no overshoot.
       heightMeters += (targetHeight - heightMeters) * approach(HEIGHT_TIME_CONSTANT);
