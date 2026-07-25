@@ -155,17 +155,17 @@ public class Handler {
         Logger.recordOutput("Simulation/Pose", robotPose3d);
         Logger.recordOutput("Simulation/Components/Bumpers", Render.Poses.bumpers);
         Logger.recordOutput("Simulation/Components/Intake", Render.Poses.intake);
-        // Logger.recordOutput("RobotPose", pose.get());
-        // Logger.recordOutput("ZeroedComponentPoses", new Pose3d[] {new Pose3d()});
-        // Logger.recordOutput("Components/Intake", new Pose3d[] {
-        //     new Pose3d(
-        //         0.1958, 0.0, 0.21, 
-        //         new Rotation3d(
-        //             Rotations.of(0), 
-        //             getWristPitch(), 
-        //             Rotations.of(0)
-        //         ))
-        // });
+        Logger.recordOutput("RobotPose", pose.get());
+        Logger.recordOutput("ZeroedComponentPoses", new Pose3d[] {new Pose3d()});
+        Logger.recordOutput("Components/Intake", new Pose3d[] {
+            new Pose3d(
+                0.1958, 0.0, 0.21, 
+                new Rotation3d(
+                    Rotations.of(0), 
+                    getWristPitch(), 
+                    Rotations.of(0)
+                ))
+        });
         physics.resolveFieldBoundaryCollision(pose.get(), chassisSpeeds.get(), supp);
     }
 

@@ -1,8 +1,8 @@
 package frc.robot.subsystems.shooter;
 
-public class Articulate implements ShooterIO {
+public class WideShooter implements ShooterIO {
 
-    public Articulate() {}
+    public WideShooter() {}
     
     @Override
     public void updateInputs(ShooterInputs inputs) {
