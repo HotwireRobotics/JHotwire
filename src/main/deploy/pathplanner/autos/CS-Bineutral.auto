@@ -7,13 +7,31 @@
         {
           "type": "named",
           "data": {
+            "name": "Lower Intake"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
             "name": "Start Intaking"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "CS-Neutral-Bump-Upper"
+            "pathName": "CS-Neutral"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Raise Intake"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "CS-Bump-Upper"
           }
         },
         {

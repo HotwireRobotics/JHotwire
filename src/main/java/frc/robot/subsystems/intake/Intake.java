@@ -51,7 +51,7 @@ public class Intake extends SubsystemBase {
     // Initialize abstraction.
     io = Constants.mode.equals(Mode.SIM) 
       ? new Simulation() 
-      : new Articulate();
+      : new Forelegs();
     this.inputs = new IntakeInputs();
 
     // Configure devices.

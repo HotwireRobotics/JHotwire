@@ -13,23 +13,21 @@ import frc.robot.constants.Constants;
  * motors themselves are owned by the {@link Actuator} subsystem and close their
  * loop on this sensor.
  */
-public class Articulate implements ActuatorIO {
+public class Clypeus implements ActuatorIO {
 
   // Position feedback device on the leader motor.
   private final CANcoder encoder;
   private final StatusSignal<Angle> position;
   private final StatusSignal<AngularVelocity> velocity;
 
-  public Articulate() {
+  public Clypeus() {
     encoder = new CANcoder(Constants.MotorIDs.ACTUATOR_ENCODER);
     position = encoder.getAbsolutePosition();
     velocity = encoder.getVelocity();
   }
 
   @Override
-  public void setTarget(Angle target) {
-    // The leader motor closes the loop on the CANcoder in hardware.
-  }
+  public void setTarget(Angle target) {}
 
   @Override
   public void updateInputs(ActuatorInputs inputs) {

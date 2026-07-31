@@ -62,7 +62,7 @@ public class Actuator extends SubsystemBase {
     // Initialize abstraction.
     io = Constants.mode.equals(Mode.SIM)
       ? new Simulation()
-      : new Articulate();
+      : new Clypeus();
     this.inputs = new ActuatorInputs();
 
     // Configure devices.

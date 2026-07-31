@@ -39,25 +39,9 @@
         "x": 6.615904282999066,
         "y": 5.277024082640915
       },
-      "nextControl": {
-        "x": 4.983580599144079,
-        "y": 5.490599144079885
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 2.5122967189728955,
-        "y": 5.309457917261056
-      },
-      "prevControl": {
-        "x": 2.564051355206847,
-        "y": 5.5811697574893016
-      },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "CS-Upper-Shoot"
+      "linkedName": "CS-Neutral-Before-Bump"
     }
   ],
   "rotationTargets": [
@@ -82,11 +66,11 @@
       "rotationDegrees": 100.0
     },
     {
-      "waypointRelativePos": 2.1044776119403203,
+      "waypointRelativePos": 2,
       "rotationDegrees": 45.0
     },
     {
-      "waypointRelativePos": 2.7249466950959462,
+      "waypointRelativePos": 2,
       "rotationDegrees": 45.0
     }
   ],
@@ -106,7 +90,14 @@
     }
   ],
   "pointTowardsZones": [],
-  "eventMarkers": [],
+  "eventMarkers": [
+    {
+      "name": "Raise Intake",
+      "waypointRelativePos": 1.8068872383524408,
+      "endWaypointRelativePos": null,
+      "command": null
+    }
+  ],
   "globalConstraints": {
     "maxVelocity": 3.0,
     "maxAcceleration": 3.0,
@@ -117,10 +108,10 @@
   },
   "goalEndState": {
     "velocity": 0.0,
-    "rotation": 149.1
+    "rotation": 45.0
   },
   "reversed": false,
-  "folder": "Cinderstorm",
+  "folder": null,
   "idealStartingState": {
     "velocity": 0,
     "rotation": 180.0

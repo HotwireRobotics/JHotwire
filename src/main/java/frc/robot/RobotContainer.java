@@ -51,28 +51,31 @@ public class RobotContainer {
   public RobotContainer() {
     // Initialize subsystems.
     drive = new Drivetrain(
-      Joysticks.driver.x());
+        Joysticks.driver.x());
     shooter = new Shooter(
-      Joysticks.driver.rightTrigger());
+        Joysticks.driver.rightTrigger());
     vision = new Vision(
-      drive::getPose, drive::getRotation,
-      drive::addVisionMeasurement);
+        drive::getPose, drive::getRotation,
+        drive::addVisionMeasurement);
     intake = new Intake(
-      Joysticks.driver.leftTrigger());
+        Joysticks.driver.leftTrigger());
     actuator = new Actuator(
-      Joysticks.driver.b());
+        Joysticks.driver.b());
 
     // Initialize simulation.
-    if (Constants.mode.equals(Mode.SIM)) simulation = new Handler(
-      () -> {
-        return Constants.regress(Meters.of(drive.getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation())));
-      },
-      () -> shooter.manager.is(Shooter.State.SHOOTING),
-      () -> intake.manager.is(Intake.State.FORWARD),
-      () -> Degrees.of(0),
-      actuator::getDisplacement,
-      drive::getPose, drive::getChassisSpeeds, drive::setPose
-    ); else simulation = new Handler(null, null, null, null, null, null, null, null);
+    if (Constants.mode.equals(Mode.SIM))
+      simulation = new Handler(
+          () -> {
+            return Constants.regress(Meters
+                .of(drive.getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation())));
+          },
+          () -> shooter.manager.is(Shooter.State.SHOOTING),
+          () -> intake.manager.is(Intake.State.FORWARD),
+          () -> Degrees.of(0),
+          actuator::getDisplacement,
+          drive::getPose, drive::getChassisSpeeds, drive::setPose);
+    else
+      simulation = new Handler(null, null, null, null, null, null, null, null);
 
     // Configure button bindings.
     configureButtonBindings();
@@ -80,12 +83,12 @@ public class RobotContainer {
     // Configure dashboard inputs.
     alignment = new LoggedDashboardChooser<>("Dashboard/alignment", new SendableChooser<Boolean>());
     alignment.addDefaultOption("Required", true);
-    alignment.addOption("Supersede",      false);
+    alignment.addOption("Supersede", false);
     // TODO: Add on-change method for alignment requirement.
 
     localization = new LoggedDashboardChooser<>("Dashboard/localization", new SendableChooser<Boolean>());
     localization.addDefaultOption("Enabled", true);
-    localization.addOption("Disabled",      false);
+    localization.addOption("Disabled", false);
     localization.onChange(v -> vision.setEnabled(v));
 
     // Declare drivetrain pathplanner events.
@@ -93,30 +96,32 @@ public class RobotContainer {
     final Command lockDrive = Commands.runOnce(() -> drive.stopWithX());
 
     NamedCommands.registerCommand("Start Intaking", intake.run().withTimeout(0.1));
-    NamedCommands.registerCommand("Stop Intaking",  intake.stop().withTimeout(0.1));
+    NamedCommands.registerCommand("Stop Intaking", intake.stop().withTimeout(0.1));
 
     // Actuator (intake deployment) auto markers.
     NamedCommands.registerCommand("Lower Intake", Commands.runOnce(actuator::extend));
-    NamedCommands.registerCommand("Drop Arm",     Commands.runOnce(actuator::extend));
+    NamedCommands.registerCommand("Raise Intake", Commands.runOnce(actuator::retract));
+    NamedCommands.registerCommand("Drop Arm", Commands.runOnce(actuator::extend));
 
-    NamedCommands.registerCommand("Intake Period",   Commands.none());
+    NamedCommands.registerCommand("Intake Period", Commands.none());
     NamedCommands.registerCommand("Occilate Intake", Commands.none());
 
     // Shooter auto markers (non-blocking, same reasoning as the intake).
     NamedCommands.registerCommand("Start Shooting", shooter.run().withTimeout(0.1));
-    NamedCommands.registerCommand("Stop Shooting",  shooter.stop().withTimeout(0.1));
+    NamedCommands.registerCommand("Stop Shooting", shooter.stop().withTimeout(0.1));
 
     // Firing sequence: spin the shooter for the firing duration, then stop.
     NamedCommands.registerCommand("Firing Sequence", Commands.sequence(
-      shooter.run().withTimeout(Constants.Shooter.kFiringTime),
-      shooter.stop().withTimeout(0.1)));
+        shooter.run().withTimeout(Constants.Shooter.kFiringTime),
+        shooter.stop().withTimeout(0.1)));
 
     // Autonomous
     if (!Constants.mode.equals(Mode.COMPETITION)) {
 
       // Create autonomous selector and add options.
-      autoChooser = new LoggedDashboardChooser<>("Auto Choices", new SendableChooser<Command>()); // new SendableChooser<Command>()
-      
+      autoChooser = new LoggedDashboardChooser<>("Auto Choices", new SendableChooser<Command>()); // new
+                                                                                                  // SendableChooser<Command>()
+
       // Drivetrain characterization routines.
       autoChooser.addOption(
           "Drive Wheel Radius Characterization", DriveCommands.wheelRadiusCharacterization(drive));
@@ -140,7 +145,7 @@ public class RobotContainer {
     // Primary autonomous routine.
     autoChooser.addOption("A-Unineutral Right", new PathPlannerAuto("A-Unineutral", false));
     autoChooser.addOption("A-Unineutral Left", new PathPlannerAuto("A-Unineutral", true));
-    
+
     autoChooser.addOption("A-Short-Unineutral Right", new PathPlannerAuto("A-Short-Unineutral", false));
     autoChooser.addOption("A-Short-Unineutral Left", new PathPlannerAuto("A-Short-Unineutral", true));
 
@@ -159,7 +164,7 @@ public class RobotContainer {
             () -> -Constants.Joysticks.driver.getLeftY(),
             () -> -Constants.Joysticks.driver.getLeftX(),
             () -> -Constants.Joysticks.driver.getRightX()));
-  
+
     // Hold wheel position.
     Constants.Joysticks.driver.rightBumper().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
@@ -167,9 +172,10 @@ public class RobotContainer {
     Constants.Joysticks.driver
         .a()
         .onTrue(Commands.runOnce(
-          () -> drive.setPose(new Pose2d(drive.getPose()
-              .getTranslation(), Rotation2d.kZero)), drive)
-              .ignoringDisable(true));
+            () -> drive.setPose(new Pose2d(drive.getPose()
+                .getTranslation(), Rotation2d.kZero)),
+            drive)
+            .ignoringDisable(true));
   }
 
   /**
@@ -182,7 +188,8 @@ public class RobotContainer {
   }
 
   /**
-   * Set the robot's pose to the starting pose of the selected autonomous command, if it exists.
+   * Set the robot's pose to the starting pose of the selected autonomous command,
+   * if it exists.
    *
    * @param autonomousCommand
    */

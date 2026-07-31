@@ -108,9 +108,9 @@ public class Robot extends LoggedRobot {
 
     // Update python pose estimate.
     Double[] robotpose = {
-      container.drive.getPose().getX(), 
-      container.drive.getPose().getX(), 
-      container.drive.getRotation().getDegrees()
+        container.drive.getPose().getX(),
+        container.drive.getPose().getX(),
+        container.drive.getRotation().getDegrees()
     };
     SmartDashboard.putNumberArray("robot-pose", robotpose);
 
@@ -125,7 +125,8 @@ public class Robot extends LoggedRobot {
   }
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+  }
 
   @Override
   public void autonomousInit() {
@@ -149,7 +150,8 @@ public class Robot extends LoggedRobot {
   }
 
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+  }
 
   @Override
   public void teleopInit() {
@@ -162,7 +164,8 @@ public class Robot extends LoggedRobot {
   }
 
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+  }
 
   @Override
   public void testInit() {
@@ -182,8 +185,10 @@ public class Robot extends LoggedRobot {
   }
 
   @Override
-  public void simulationInit() {}
+  public void simulationInit() {
+  }
 
   @Override
-  public void simulationPeriodic() {}
+  public void simulationPeriodic() {
+  }
 }
