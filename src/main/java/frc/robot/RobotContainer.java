@@ -33,180 +33,185 @@ import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 public class RobotContainer {
-  // Declare subsystems.
-  public final Drivetrain drive;
-  public final Vision vision;
-  public final Intake intake;
-  public final Shooter shooter;
-  public final Actuator actuator;
+            // Declare subsystems.
 
-  // Simulation.
-  public final Handler simulation;
+    public final Drivetrain drive;
+    public final Vision vision;
+    public final Intake intake;
+    public final Shooter shooter;
+    public final Actuator actuator;
 
-  // Dashboard inputs.
-  private final LoggedDashboardChooser<Command> autoChooser;
-  private final LoggedDashboardChooser<Boolean> localization;
-  private final LoggedDashboardChooser<Boolean> alignment;
+    // Simulation.
+    public final Handler simulation;
 
-  public RobotContainer() {
-    // Initialize subsystems.
-    drive = new Drivetrain(
-        Joysticks.driver.x());
-    shooter = new Shooter(
-        Joysticks.driver.rightTrigger());
-    vision = new Vision(
-        drive::getPose, drive::getRotation,
-        drive::addVisionMeasurement);
-    intake = new Intake(
-        Joysticks.driver.leftTrigger());
-    actuator = new Actuator(
-        Joysticks.driver.b());
+    // Dashboard inputs.
+    private final LoggedDashboardChooser<Command> autoChooser;
+    private final LoggedDashboardChooser<Boolean> localization;
+    private final LoggedDashboardChooser<Boolean> alignment;
 
-    // Initialize simulation.
-    if (Constants.mode.equals(Mode.SIM))
-      simulation = new Handler(
-          () -> {
-            return Constants.regress(Meters
-                .of(drive.getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation())));
-          },
-          () -> shooter.manager.is(Shooter.State.SHOOTING),
-          () -> intake.manager.is(Intake.State.FORWARD),
-          () -> Degrees.of(0),
-          actuator::getDisplacement,
-          drive::getPose, drive::getChassisSpeeds, drive::setPose);
-    else
-      simulation = new Handler(null, null, null, null, null, null, null, null);
+    public RobotContainer() {
+        // Initialize subsystems.
+        drive = new Drivetrain(
+                Joysticks.driver.x());
+        shooter = new Shooter(
+                Joysticks.driver.rightTrigger());
+        vision = new Vision(
+                drive::getPose, drive::getRotation,
+                drive::addVisionMeasurement);
+        intake = new Intake(
+                Joysticks.driver.leftTrigger());
+        actuator = new Actuator(
+                Joysticks.driver.b());
 
-    // Configure button bindings.
-    configureButtonBindings();
+        // Initialize simulation.
+        if (Constants.mode.equals(Mode.SIM)) {
+            simulation = new Handler(
+                    () -> {
+                        return Constants.regress(Meters
+                                .of(drive.getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation())));
+                    },
+                    () -> shooter.manager.is(Shooter.State.SHOOTING),
+                    () -> intake.manager.is(Intake.State.FORWARD),
+                    () -> Degrees.of(0),
+                    actuator::getDisplacement,
+                    drive::getPose, drive::getChassisSpeeds, drive::setPose); 
+        }else {
+            simulation = new Handler(null, null, null, null, null, null, null, null);
+        }
 
-    // Configure dashboard inputs.
-    alignment = new LoggedDashboardChooser<>("Dashboard/alignment", new SendableChooser<Boolean>());
-    alignment.addDefaultOption("Required", true);
-    alignment.addOption("Supersede", false);
-    // TODO: Add on-change method for alignment requirement.
+        // Configure button bindings.
+        configureButtonBindings();
 
-    localization = new LoggedDashboardChooser<>("Dashboard/localization", new SendableChooser<Boolean>());
-    localization.addDefaultOption("Enabled", true);
-    localization.addOption("Disabled", false);
-    localization.onChange(v -> vision.setEnabled(v));
+        // Configure dashboard inputs.
+        alignment = new LoggedDashboardChooser<>("Dashboard/alignment", new SendableChooser<Boolean>());
+        alignment.addDefaultOption("Required", true);
+        alignment.addOption("Supersede", false);
+        // TODO: Add on-change method for alignment requirement.
 
-    // Declare drivetrain pathplanner events.
-    final Command stopDrive = Commands.runOnce(() -> drive.stop());
-    final Command lockDrive = Commands.runOnce(() -> drive.stopWithX());
+        localization = new LoggedDashboardChooser<>("Dashboard/localization", new SendableChooser<Boolean>());
+        localization.addDefaultOption("Enabled", true);
+        localization.addOption("Disabled", false);
+        localization.onChange(v -> vision.setEnabled(v));
 
-    NamedCommands.registerCommand("Start Intaking", intake.run().withTimeout(0.1));
-    NamedCommands.registerCommand("Stop Intaking", intake.stop().withTimeout(0.1));
+        // Declare drivetrain pathplanner events.
+        final Command stopDrive = Commands.runOnce(() -> drive.stop());
+        final Command lockDrive = Commands.runOnce(() -> drive.stopWithX());
 
-    // Actuator (intake deployment) auto markers.
-    NamedCommands.registerCommand("Lower Intake", Commands.runOnce(actuator::extend));
-    NamedCommands.registerCommand("Raise Intake", Commands.runOnce(actuator::retract));
-    NamedCommands.registerCommand("Drop Arm", Commands.runOnce(actuator::extend));
+        NamedCommands.registerCommand("Start Intaking", intake.run().withTimeout(0.1));
+        NamedCommands.registerCommand("Stop Intaking", intake.stop().withTimeout(0.1));
 
-    NamedCommands.registerCommand("Intake Period", Commands.none());
-    NamedCommands.registerCommand("Occilate Intake", Commands.none());
+        // Actuator (intake deployment) auto markers.
+        NamedCommands.registerCommand("Lower Intake", Commands.runOnce(actuator::extend));
+        NamedCommands.registerCommand("Raise Intake", Commands.runOnce(actuator::retract));
+        NamedCommands.registerCommand("Drop Arm", Commands.runOnce(actuator::extend));
 
-    // Shooter auto markers (non-blocking, same reasoning as the intake).
-    NamedCommands.registerCommand("Start Shooting", shooter.run().withTimeout(0.1));
-    NamedCommands.registerCommand("Stop Shooting", shooter.stop().withTimeout(0.1));
+        NamedCommands.registerCommand("Intake Period", Commands.none());
+        NamedCommands.registerCommand("Occilate Intake", Commands.none());
 
-    // Firing sequence: spin the shooter for the firing duration, then stop.
-    NamedCommands.registerCommand("Firing Sequence", Commands.sequence(
-        shooter.run().withTimeout(Constants.Shooter.kFiringTime),
-        shooter.stop().withTimeout(0.1)));
+        // Shooter auto markers (non-blocking, same reasoning as the intake).
+        NamedCommands.registerCommand("Start Shooting", shooter.run().withTimeout(0.1));
+        NamedCommands.registerCommand("Stop Shooting", shooter.stop().withTimeout(0.1));
 
-    // Autonomous
-    if (!Constants.mode.equals(Mode.COMPETITION)) {
+        // Firing sequence: spin the shooter for the firing duration, then stop.
+        NamedCommands.registerCommand("Firing Sequence", Commands.sequence(
+                shooter.run().withTimeout(Constants.Shooter.kFiringTime),
+                shooter.stop().withTimeout(0.1)));
 
-      // Create autonomous selector and add options.
-      autoChooser = new LoggedDashboardChooser<>("Auto Choices", new SendableChooser<Command>()); // new
-                                                                                                  // SendableChooser<Command>()
+        // Autonomous
+        if (!Constants.mode.equals(Mode.COMPETITION)) {
 
-      // Drivetrain characterization routines.
-      autoChooser.addOption(
-          "Drive Wheel Radius Characterization", DriveCommands.wheelRadiusCharacterization(drive));
-      autoChooser.addOption(
-          "Drive Simple FF Characterization", DriveCommands.feedforwardCharacterization(drive));
-      autoChooser.addOption(
-          "Drive SysId (Quasistatic Forward)",
-          drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-      autoChooser.addOption(
-          "Drive SysId (Quasistatic Reverse)",
-          drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-      autoChooser.addOption(
-          "Drive SysId (Dynamic Forward)", drive.sysIdDynamic(SysIdRoutine.Direction.kForward));
-      autoChooser.addOption(
-          "Drive SysId (Dynamic Reverse)", drive.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+            // Create autonomous selector and add options.
+            autoChooser = new LoggedDashboardChooser<>("Auto Choices", new SendableChooser<Command>()); // new
+            // SendableChooser<Command>()
 
-    } else {
-      autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
+            // Drivetrain characterization routines.
+            autoChooser.addOption(
+                    "Drive Wheel Radius Characterization", DriveCommands.wheelRadiusCharacterization(drive));
+            autoChooser.addOption(
+                    "Drive Simple FF Characterization", DriveCommands.feedforwardCharacterization(drive));
+            autoChooser.addOption(
+                    "Drive SysId (Quasistatic Forward)",
+                    drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+            autoChooser.addOption(
+                    "Drive SysId (Quasistatic Reverse)",
+                    drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+            autoChooser.addOption(
+                    "Drive SysId (Dynamic Forward)", drive.sysIdDynamic(SysIdRoutine.Direction.kForward));
+            autoChooser.addOption(
+                    "Drive SysId (Dynamic Reverse)", drive.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+
+        } else {
+            autoChooser = new LoggedDashboardChooser<>("Auto Choices", AutoBuilder.buildAutoChooser());
+        }
+
+        // Primary autonomous routine.
+        autoChooser.addOption("A-Unineutral Right", new PathPlannerAuto("A-Unineutral", false));
+        autoChooser.addOption("A-Unineutral Left", new PathPlannerAuto("A-Unineutral", true));
+
+        autoChooser.addOption("A-Short-Unineutral Right", new PathPlannerAuto("A-Short-Unineutral", false));
+        autoChooser.addOption("A-Short-Unineutral Left", new PathPlannerAuto("A-Short-Unineutral", true));
+
+        // Tertiary autonomous routine.
+        autoChooser.addOption("A-Shoot-Depot", new PathPlannerAuto("A-Shoot-Depot"));
+
+        // Quaternary autonomous routine.
+        autoChooser.addOption("CS-Bineutral", new PathPlannerAuto("CS-Bineutral"));
     }
 
-    // Primary autonomous routine.
-    autoChooser.addOption("A-Unineutral Right", new PathPlannerAuto("A-Unineutral", false));
-    autoChooser.addOption("A-Unineutral Left", new PathPlannerAuto("A-Unineutral", true));
+    private void configureButtonBindings() {
+        // Third person drive command.
+        drive.setDefaultCommand(
+                DriveCommands.joystickDrive(
+                        drive,
+                        () -> -Constants.Joysticks.driver.getLeftY(),
+                        () -> -Constants.Joysticks.driver.getLeftX(),
+                        () -> -Constants.Joysticks.driver.getRightX()));
 
-    autoChooser.addOption("A-Short-Unineutral Right", new PathPlannerAuto("A-Short-Unineutral", false));
-    autoChooser.addOption("A-Short-Unineutral Left", new PathPlannerAuto("A-Short-Unineutral", true));
+        // Hold wheel position.
+        Constants.Joysticks.driver.rightBumper().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
-    // Tertiary autonomous routine.
-    autoChooser.addOption("A-Shoot-Depot", new PathPlannerAuto("A-Shoot-Depot"));
+        // Zero pose heading.
+        Constants.Joysticks.driver
+                .a()
+                .onTrue(Commands.runOnce(
+                        () -> drive.setPose(new Pose2d(drive.getPose()
+                                .getTranslation(), Rotation2d.kZero)),
+                        drive)
+                        .ignoringDisable(true));
 
-    // Quaternary autonomous routine.
-    autoChooser.addOption("CS-Bineutral", new PathPlannerAuto("CS-Bineutral"));
-  }
-
-  private void configureButtonBindings() {
-    // Third person drive command.
-    drive.setDefaultCommand(
-        DriveCommands.joystickDrive(
-            drive,
-            () -> -Constants.Joysticks.driver.getLeftY(),
-            () -> -Constants.Joysticks.driver.getLeftX(),
-            () -> -Constants.Joysticks.driver.getRightX()));
-
-    // Hold wheel position.
-    Constants.Joysticks.driver.rightBumper().onTrue(Commands.runOnce(drive::stopWithX, drive));
-
-    // Zero pose heading.
-    Constants.Joysticks.driver
-        .a()
-        .onTrue(Commands.runOnce(
-            () -> drive.setPose(new Pose2d(drive.getPose()
-                .getTranslation(), Rotation2d.kZero)),
-            drive)
-            .ignoringDisable(true));
-  }
-
-  /**
-   * Supplies the autonomous command selected on the dashboard.
-   *
-   * @return
-   */
-  public Command getAutonomousCommand() {
-    return autoChooser.get();
-  }
-
-  /**
-   * Set the robot's pose to the starting pose of the selected autonomous command,
-   * if it exists.
-   *
-   * @param autonomousCommand
-   */
-  public void seedAutonomousPose(Command autonomousCommand) {
-    if (!(autonomousCommand instanceof PathPlannerAuto selectedAuto)) {
-      return;
+        // Shoot fuel.
+        Constants.Joysticks.driver.rightTrigger().whileTrue(shooter.run());
     }
 
-    // Get autonomous starting pose.
-    Pose2d startingPose = selectedAuto.getStartingPose();
-    if (startingPose == null) {
-      return;
+    /**
+     * Supplies the autonomous command selected on the dashboard.
+     *
+     * @return
+     */
+    public Command getAutonomousCommand() {
+        return autoChooser.get();
     }
 
-    drive.setPose(startingPose);
-    Logger.recordOutput("AutoSeedPose", startingPose);
-  }
+    /**
+     * Set the robot's pose to the starting pose of the selected autonomous
+     * command, if it exists.
+     *
+     * @param autonomousCommand
+     */
+    public void seedAutonomousPose(Command autonomousCommand) {
+        if (!(autonomousCommand instanceof PathPlannerAuto selectedAuto)) {
+            return;
+        }
+
+        // Get autonomous starting pose.
+        Pose2d startingPose = selectedAuto.getStartingPose();
+        if (startingPose == null) {
+            return;
+        }
+
+        drive.setPose(startingPose);
+        Logger.recordOutput("AutoSeedPose", startingPose);
+    }
 }
 
 // ./gradlew deploy --no-daemon

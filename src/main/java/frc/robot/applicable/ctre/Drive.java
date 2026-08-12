@@ -168,6 +168,12 @@ public class Drive extends SubsystemBase {
           new ModuleIOTalonFX(TunerConstants.BackLeft),
           new ModuleIOTalonFX(TunerConstants.BackRight)
       };
+      case COMPETITION -> new ModuleIO[] {
+          new ModuleIOTalonFX(TunerConstants.FrontLeft),
+          new ModuleIOTalonFX(TunerConstants.FrontRight),
+          new ModuleIOTalonFX(TunerConstants.BackLeft),
+          new ModuleIOTalonFX(TunerConstants.BackRight)
+      };
       case SIM -> new ModuleIO[] {
           new ModuleIOSim(TunerConstants.FrontLeft),
           new ModuleIOSim(TunerConstants.FrontRight),

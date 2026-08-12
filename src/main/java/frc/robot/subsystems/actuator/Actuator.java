@@ -24,6 +24,7 @@ import frc.robot.subsystems.motors.Motor.Feedforward;
 import frc.robot.subsystems.motors.MotorIO.Direction;
 import frc.robot.subsystems.motors.MotorIO.FollowerMode;
 import frc.robot.subsystems.motors.MotorIO.NeutralMode;
+import frc.robot.subsystems.actuator.Clypeus;
 
 /**
  * <strong>Actuator Subsystem</strong>
@@ -44,7 +45,7 @@ public class Actuator extends SubsystemBase {
   }
   /** Subsystem state. */
   public final StateManager<State> manager = new StateManager<State>(
-    getName(), State.EXTENDED
+    getName(), State.RETRACTED
   );
 
   // Initialize device representatives.

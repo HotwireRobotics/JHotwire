@@ -5,6 +5,12 @@
     "data": {
       "commands": [
         {
+          "type": "path",
+          "data": {
+            "pathName": "Backup"
+          }
+        },
+        {
           "type": "race",
           "data": {
             "commands": [
