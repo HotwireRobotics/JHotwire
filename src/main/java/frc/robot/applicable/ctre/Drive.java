@@ -158,6 +158,7 @@ public class Drive extends SubsystemBase {
   public Drive() {
     this(switch (Constants.mode) {
       case REAL -> new GyroIOPigeon2();
+      case COMPETITION -> new GyroIOPigeon2();
       case SIM -> new GyroIO() {};
       default -> new GyroIO() {};
     },
