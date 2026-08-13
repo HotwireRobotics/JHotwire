@@ -4,9 +4,12 @@ import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import java.util.Arrays;
+
+import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
@@ -14,6 +17,7 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.constants.Constants;
@@ -95,7 +99,7 @@ public class Shooter extends SubsystemBase {
     // Set follower control.
     secondary.follow(primary, FollowerMode.ALIGNED);
     tertiary.follow(primary, FollowerMode.INVERSE);
-    quaternary.follow(primary, FollowerMode.INVERSE);
+    quaternary.follow(primary, FollowerMode.ALIGNED);
 
     // Join all devices in a list for iteration.
     shooting = new Motor[] {

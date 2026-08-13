@@ -15,15 +15,8 @@ import frc.robot.constants.Constants;
  */
 public class Clypeus implements ActuatorIO {
 
-  // Position feedback device on the leader motor.
-  private final CANcoder encoder;
-  private final StatusSignal<Angle> position;
-  private final StatusSignal<AngularVelocity> velocity;
-
   public Clypeus() {
-    encoder = new CANcoder(Constants.MotorIDs.ACTUATOR_ENCODER);
-    position = encoder.getAbsolutePosition();
-    velocity = encoder.getVelocity();
+
   }
 
   @Override
@@ -31,8 +24,6 @@ public class Clypeus implements ActuatorIO {
 
   @Override
   public void updateInputs(ActuatorInputs inputs) {
-    BaseStatusSignal.refreshAll(position, velocity);
-    inputs.position = position.getValueAsDouble();
-    inputs.velocity = velocity.getValueAsDouble();
+
   }
 }

@@ -8,6 +8,7 @@ import com.pathplanner.lib.commands.PathPlannerAuto;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -33,16 +34,17 @@ import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 public class RobotContainer {
-            // Declare subsystems.
 
+    // Declare subsystems.
     public final Drivetrain drive;
     public final Vision vision;
     public final Intake intake;
     public final Shooter shooter;
     public final Actuator actuator;
+    public final PowerDistribution PDP;
 
     // Simulation.
-    public final Handler simulation;
+    // public final Handler simulation;
 
     // Dashboard inputs.
     private final LoggedDashboardChooser<Command> autoChooser;
@@ -62,22 +64,24 @@ public class RobotContainer {
                 Joysticks.driver.leftTrigger());
         actuator = new Actuator(
                 Joysticks.driver.b());
+        PDP = new PowerDistribution();
+        PDP.setSwitchableChannel(true);
 
         // Initialize simulation.
-        if (Constants.mode.equals(Mode.SIM)) {
-            simulation = new Handler(
-                    () -> {
-                        return Constants.regress(Meters
-                                .of(drive.getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation())));
-                    },
-                    () -> shooter.manager.is(Shooter.State.SHOOTING),
-                    () -> intake.manager.is(Intake.State.FORWARD),
-                    () -> Degrees.of(0),
-                    actuator::getDisplacement,
-                    drive::getPose, drive::getChassisSpeeds, drive::setPose); 
-        }else {
-            simulation = new Handler(null, null, null, null, null, null, null, null);
-        }
+        // if (Constants.mode.equals(Mode.SIM)) {
+        //     simulation = new Handler(
+        //             () -> {
+        //                 return Constants.regress(Meters
+        //                         .of(drive.getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation())));
+        //             },
+        //             () -> shooter.manager.is(Shooter.State.SHOOTING),
+        //             () -> intake.manager.is(Intake.State.FORWARD),
+        //             () -> Degrees.of(0),
+        //             actuator::getDisplacement,
+        //             drive::getPose, drive::getChassisSpeeds, drive::setPose); 
+        // }else {
+        //     simulation = new Handler(null, null, null, null, null, null, null, null);
+        // }
 
         // Configure button bindings.
         configureButtonBindings();
@@ -178,9 +182,6 @@ public class RobotContainer {
                                 .getTranslation(), Rotation2d.kZero)),
                         drive)
                         .ignoringDisable(true));
-
-        // Shoot fuel.
-        Constants.Joysticks.driver.rightTrigger().whileTrue(shooter.run());
     }
 
     /**

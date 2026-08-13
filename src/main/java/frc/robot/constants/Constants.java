@@ -87,12 +87,11 @@ public final class Constants {
 
     // CANcoder-referenced positions for the two actuator states.
     public static final Angle kRetracted = Rotations.of(0);
-    public static final Angle kExtended = Rotations.of(10);
+    public static final Angle kExtended = Rotations.of(1.909);
 
     // Position error within which the actuator is considered "on target".
-    public static final Angle kTolerance = Rotations.of(0.1);
+    public static final Angle kTolerance = Rotations.of(0.01);
 
-    // Exponential smoothing factor for simulated motion, in [0, 1].
     // Higher values reach the target more quickly.
     public static final double kSmoothing = 0.5;
 

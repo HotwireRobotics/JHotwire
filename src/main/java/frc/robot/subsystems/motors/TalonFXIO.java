@@ -14,6 +14,7 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 
 import edu.wpi.first.units.measure.Angle;
@@ -27,11 +28,12 @@ import edu.wpi.first.units.measure.Voltage;
 public class TalonFXIO implements MotorIO {
 
   // Declare device.
-  private final TalonFX motor;
+  public final TalonFX motor;
 
   // Control loops.
   private final VoltageOut voltageOut = new VoltageOut(0);
   private final PositionVoltage positionVoltage = new PositionVoltage(0);
+  private final VelocityVoltage velocityVoltage = new VelocityVoltage(RPM.of(0));
   private final Follower follower = new Follower(0, MotorAlignmentValue.Aligned);
 
   // Configurator.
@@ -66,7 +68,7 @@ public class TalonFXIO implements MotorIO {
   /** Run to velocity. */
   @Override
   public void putVelocity(AngularVelocity velocity) {
-    motor.setControl(positionVoltage.withVelocity(velocity));
+    motor.setControl(velocityVoltage.withVelocity(velocity));
     _target = Optional.of(Setpoint.of(velocity));
   }
 

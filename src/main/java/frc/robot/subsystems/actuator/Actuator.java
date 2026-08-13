@@ -7,6 +7,8 @@ import static edu.wpi.first.units.Units.Rotations;
 
 import org.littletonrobotics.junction.Logger;
 
+import com.ctre.phoenix6.hardware.CANcoder;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.units.measure.Angle;
@@ -55,7 +57,7 @@ public class Actuator extends SubsystemBase {
   final Motor left;
 
   // Test toggle for commanding the actuator in/out; defaults to extended.
-  private boolean test = true;
+  private boolean toggle = true;
 
   public Actuator(
     Trigger trigger
@@ -67,15 +69,19 @@ public class Actuator extends SubsystemBase {
     this.inputs = new ActuatorInputs();
 
     // Configure devices.
-    Application configuration = new Application(Direction.FORWARD, NeutralMode.BRAKE, Amps.of(40));
+    Application configuration = new Application(
+      Direction.FORWARD, NeutralMode.BRAKE, Amps.of(40));
     right = new Motor(this, Constants.MotorIDs.ACTUATOR_RIGHT);
-    right.apply(configuration);
-    right.apply(new Feedforward(Constants.Actuator.kP, 0, 0));
+    right.apply(
+      configuration);
+    right.apply(
+      new Feedforward(Constants.Actuator.kP, 0, 0));
     left = new Motor(this, Constants.MotorIDs.ACTUATOR_LEFT);
-    left.apply(configuration);
+    left.apply(
+      configuration);
 
     // The left motor mirrors the leader.
-    left.follow(right, FollowerMode.ALIGNED);
+    left.follow(right, FollowerMode.INVERSE);
 
     // Triggers.
     trigger.onTrue(Commands.runOnce(this::toggle));
@@ -87,13 +93,13 @@ public class Actuator extends SubsystemBase {
     io.updateInputs(inputs);
 
     // Drive the leader (the follower tracks it) toward the active target.
-    Angle target = test ? Constants.Actuator.kExtended : Constants.Actuator.kRetracted;
+    Angle target = toggle ? Constants.Actuator.kExtended : Constants.Actuator.kRetracted;
     right.putPosition(target);
     io.setTarget(target);
 
     // Log device and derived state.
     Logs.log(right);
-    Logger.recordOutput("Actuator/Position", inputs.position);
+    Logger.recordOutput("Actuator/Position", right.getPosition());
     Logger.recordOutput("Actuator/Extension", getExtension());
   }
 
@@ -102,14 +108,14 @@ public class Actuator extends SubsystemBase {
    * immediately; {@code periodic()} drives the mechanism to the new target.
    */
   public void toggle() {
-    if (test) retract(); else extend();
+    if (toggle) retract(); else extend();
   }
 
   /**
    * Extend the actuator.
    */
   public void extend() {
-    test = true;
+    toggle = true;
     manager.set(State.EXTENDED);
   }
 
@@ -117,7 +123,7 @@ public class Actuator extends SubsystemBase {
    * Retract the actuator.
    */
   public void retract() {
-    test = false;
+    toggle = false;
     manager.set(State.RETRACTED);
   }
 
@@ -130,8 +136,8 @@ public class Actuator extends SubsystemBase {
   public double getExtension() {
     double range = Constants.Actuator.kExtended
       .minus(Constants.Actuator.kRetracted).in(Rotations);
-    double travelled = inputs.position - Constants.Actuator.kRetracted.in(Rotations);
-    return MathUtil.clamp(travelled / range, 0, 1);
+    Angle travelled = right.getPosition().minus(Constants.Actuator.kRetracted);
+    return MathUtil.clamp(travelled.in(Rotations) / range, 0, 1);
   }
 
   /**

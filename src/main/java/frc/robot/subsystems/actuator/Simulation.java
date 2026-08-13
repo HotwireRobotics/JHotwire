@@ -13,24 +13,15 @@ import frc.robot.constants.Constants;
  */
 public class Simulation implements ActuatorIO {
 
-  // Simulated CANcoder state (rotations). Defaults to extended.
-  private double position = Constants.Actuator.kRetracted.in(Rotations);
-  private double target =   Constants.Actuator.kExtended.in(Rotations);
-
   public Simulation() {}
 
   @Override
   public void setTarget(Angle target) {
-    this.target = target.in(Rotations);
+    
   }
 
   @Override
   public void updateInputs(ActuatorInputs inputs) {
-    // Step the simulated position toward the target with exponential smoothing.
-    double previous = position;
-    position += (target - position) * Constants.Actuator.kSmoothing;
 
-    inputs.position = position;
-    inputs.velocity = (position - previous) / 0.02;
   }
 }

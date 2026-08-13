@@ -9,11 +9,7 @@ public interface ActuatorIO {
   // Define inputs for the actuator subsystem.
   @AutoLog
   public class ActuatorInputs {
-    /** CANcoder position (rotations). */
-    public double position = 0.0;
-
-    /** CANcoder velocity (rotations per second). */
-    public double velocity = 0.0;
+    
   }
 
   /**
