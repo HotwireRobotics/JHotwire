@@ -85,7 +85,7 @@ public class Shooter extends SubsystemBase {
     
     // Configure shooter motors with identical settings. 
     Application configuration = new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40));
-    Feedforward feedforward = new Feedforward(1, 0, 0);
+    Feedforward feedforward = new Feedforward(0.1, 0, 0);
     primary    = new Motor(this, Constants.MotorIDs.PRIMARY); 
     primary.apply(
       configuration);
@@ -103,7 +103,7 @@ public class Shooter extends SubsystemBase {
 
     // Set follower control.
     secondary.follow(primary, FollowerMode.ALIGNED);
-    tertiary.follow(primary, FollowerMode.INVERSE);
+    tertiary.follow(primary, FollowerMode.ALIGNED);
     quaternary.follow(primary, FollowerMode.ALIGNED);
 
     // Join all devices in a list for iteration.

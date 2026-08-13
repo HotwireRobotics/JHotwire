@@ -31,17 +31,30 @@ public class TalonFXIO implements MotorIO {
   public final TalonFX motor;
 
   // Control loops.
-  private final VoltageOut voltageOut = new VoltageOut(0);
-  private final PositionVoltage positionVoltage = new PositionVoltage(0);
-  private final VelocityVoltage velocityVoltage = new VelocityVoltage(RPM.of(0));
-  private final Follower follower = new Follower(0, MotorAlignmentValue.Aligned);
+  private final VoltageOut voltageOut;
+  private final PositionVoltage positionVoltage;
+  private final VelocityVoltage velocityVoltage;
+  private final Follower follower;
+
+  private final Slot0Configs slot;
 
   // Configurator.
   private final TalonFXConfigurator configurator;
+  private final MotorOutputConfigs motorOutputConfigs;
+
+  /** Get the current setpoint of the motor. */
+  private Optional<Setpoint> _target;
 
   public TalonFXIO(int deviceID) {
     motor = new TalonFX(deviceID);
+    voltageOut = new VoltageOut(0);
+    positionVoltage = new PositionVoltage(0);
+    velocityVoltage = new VelocityVoltage(RPM.of(0));
+    follower = new Follower(0, MotorAlignmentValue.Aligned);
+    slot = new Slot0Configs();
     configurator = motor.getConfigurator();
+    motorOutputConfigs = new MotorOutputConfigs();
+    _target = Optional.empty();
   }
 
   public TalonFXIO(int deviceID, Current currentLimit) {
@@ -49,8 +62,6 @@ public class TalonFXIO implements MotorIO {
     setCurrentLimit(currentLimit);
   }
 
-  /** Get the current setpoint of the motor. */
-  private Optional<Setpoint> _target = Optional.empty();
 
   /** Set the motor output voltage. */
   @Override
@@ -87,37 +98,37 @@ public class TalonFXIO implements MotorIO {
   /** Configure proportional gain (kP). */
   @Override
   public void configureProportional(double kP) {
-    configurator.apply(new Slot0Configs().withKP(kP));
+    configurator.apply(slot.withKP(kP));
   }
 
   /** Configure integral gain (kI). */
   @Override
   public void configureIntegral(double kI) {
-    configurator.apply(new Slot0Configs().withKI(kI));
+    configurator.apply(slot.withKI(kI));
   }
 
   /** Configure derivative gain (kD). */
   @Override
   public void configureDerivative(double kD) {
-    configurator.apply(new Slot0Configs().withKD(kD));
+    configurator.apply(slot.withKD(kD));
   }
 
   /** Configure static friction feedforward (kS). */
   @Override
   public void configureStaticFriction(double kS) {
-    configurator.apply(new Slot0Configs().withKS(kS));
+    configurator.apply(slot.withKS(kS));
   }
 
   /** Configure velocity feedforward (kV). */
   @Override
   public void configureVelocity(double kV) {
-    configurator.apply(new Slot0Configs().withKV(kV));
+    configurator.apply(slot.withKV(kV));
   }
 
   /** Configure acceleration feedforward (kA). */
   @Override
   public void configureAcceleration(double kA) {
-    configurator.apply(new Slot0Configs().withKA(kA));
+    configurator.apply(slot.withKA(kA));
   }
 
   /** Set the supply current limit. */
@@ -136,7 +147,7 @@ public class TalonFXIO implements MotorIO {
       ? InvertedValue.Clockwise_Positive 
       : InvertedValue.CounterClockwise_Positive;
     configurator.apply(
-        new MotorOutputConfigs()
+        motorOutputConfigs
             .withInverted(value));
   }
 
@@ -147,7 +158,7 @@ public class TalonFXIO implements MotorIO {
       ? NeutralModeValue.Coast 
       : NeutralModeValue.Brake;
     configurator.apply(
-        new MotorOutputConfigs()
+        motorOutputConfigs
             .withNeutralMode(neutral));
   }
 
