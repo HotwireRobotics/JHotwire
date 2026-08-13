@@ -1,4 +1,4 @@
-package frc.robot.subsystems.intake;
+package frc.robot.subsystems.hopper;
 
 import frc.robot.subsystems.motors.MotorIO.*;
 import frc.robot.subsystems.motors.Motor.Application;
@@ -16,6 +16,7 @@ import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.hotwire.Logs;
 import frc.robot.hotwire.StateManager;
+import frc.robot.subsystems.hopper.HopperIO.HopperInputs;
 import frc.robot.subsystems.intake.IntakeIO.IntakeInputs;
 import frc.robot.subsystems.motors.Motor;
 import frc.robot.subsystems.vision.VisionIO.VisionInputs;
@@ -25,11 +26,11 @@ import frc.robot.subsystems.vision.VisionIO.VisionInputs;
  * <p>Subsystem for controlling intake roller
  * motion.
  */
-public class Intake extends SubsystemBase {
+public class Hopper extends SubsystemBase {
   
   // Subsystem abstraction.
-  private final IntakeIO io;
-  private final IntakeInputs inputs;
+  private final HopperIO io;
+  private final HopperInputs inputs;
 
   // State system.
   public enum State {
@@ -44,26 +45,26 @@ public class Intake extends SubsystemBase {
 
   // Initialize device representatives.
   /** Intake rollers. */
-  final Motor rollers;
+  final Motor hopper;
 
-  public Intake(
+  public Hopper(
     Trigger trigger
   ) {
     // Initialize abstraction.
     io = Constants.mode.equals(Mode.SIM) 
       ? new Simulation() 
-      : new Forelegs();
-    this.inputs = new IntakeInputs();
+      : new Belly();
+    this.inputs = new HopperInputs();
 
     // Configure devices.
-    rollers = new Motor(this, Constants.MotorIDs.ROLLERS);
-    rollers.apply(
-      new Application(Direction.REVERSE, NeutralMode.COAST, Amps.of(40)));
-    rollers.apply(new Feedforward(1, 0, 0));
+    hopper = new Motor(this, Constants.MotorIDs.HOPPER);
+    hopper.apply(
+      new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
+    hopper.apply(new Feedforward(1, 0, 0));
     
     // Triggers.
     trigger
-      .whileTrue(runVelocity(Constants.Intake.kSpeed))
+      .whileTrue(runVelocity(Constants.Hopper.kSpeed))
       .onFalse(runHalt());
   }
 
@@ -71,7 +72,7 @@ public class Intake extends SubsystemBase {
   public void periodic() {
     // Update subsystem inputs.
     io.updateInputs(inputs);
-    Logs.log(rollers);
+    Logs.log(hopper);
   }
 
   /** 
@@ -80,7 +81,7 @@ public class Intake extends SubsystemBase {
    * @param velocity Angular velocity to run rollers at.
    */
   private Command runVelocity(AngularVelocity velocity) {
-    return rollers.runVelocity(velocity).alongWith(
+    return hopper.runVelocity(velocity).alongWith(
       manager.tag(() -> (velocity.gt(RPM.of(0)) 
         ? State.FORWARD 
         : State.REVERSE)
@@ -91,7 +92,7 @@ public class Intake extends SubsystemBase {
    * Halt intake rollers. 
    */
   private Command runHalt() {
-    return rollers.runPercent(0).alongWith(
+    return hopper.runPercent(0).alongWith(
       manager.tag(State.STOPPED));
   }
 

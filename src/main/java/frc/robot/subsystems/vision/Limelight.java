@@ -5,11 +5,13 @@ import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.Seconds;
 
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.constants.LimelightHelpers;
@@ -24,24 +26,35 @@ public class Limelight implements VisionIO {
     public static class Poses {
       private static final Pose3d gamma = 
         new Pose3d(
-          Meters.of(-0.250824), 
-          Meters.of(0.2794), 
-          Meters.of(0.2413),
+          Meters.of(-0.0254),
+          Meters.of(-0.3048), 
+          Meters.of(0.503656),
           new Rotation3d(
             Degrees.of(0), 
-            Degrees.of(30), 
-            Degrees.of(-90)
+            Degrees.of(0), 
+            Degrees.of(90)
           ));
           
       private static final Pose3d alpha = 
         new Pose3d(
-          Meters.of(-0.1651), 
-          Meters.of(-0.29209), 
-          Meters.of(0.5206),
+          Meters.of(0.327025),
+          Meters.of(0), 
+          Meters.of(0.2413),
           new Rotation3d(
             Degrees.of(0), 
-            Degrees.of(27), 
+            Degrees.of(25), 
             Degrees.of(0)
+          ));
+
+      private static final Pose3d beta = 
+        new Pose3d(
+          Meters.of(-0.0254),
+          Meters.of(0.3048), 
+          Meters.of(0.503656),
+          new Rotation3d(
+            Degrees.of(0), 
+            Degrees.of(0), 
+            Degrees.of(-90)
           ));
     }
 
@@ -72,7 +85,7 @@ public class Limelight implements VisionIO {
     /** Define pipeline for vision. */
     private static class Pipeline {
       /** Localization pipeline. */
-      Localization localization = Localization.MEGATAG2;
+      Localization localization = Localization.MEGATAG1;
       /** Pipeline index. */
       int index = 0;
       /** IMU mode. */
@@ -116,7 +129,7 @@ public class Limelight implements VisionIO {
         private final String name;
         /** Pose object. */
         private final Pose3d pose;
-        /** processing pipeline. */
+        /** Processing pipeline. */
         private Pipeline pipeline;
 
         public Camera(
@@ -155,7 +168,10 @@ public class Limelight implements VisionIO {
          * 
          * @return a real pose estimate.
          */
-        public Measurement getMeasurement() {
+        public Measurement getMeasurement(Rotation2d rotation) {
+          // Supply MegaTag2 with robot orientation.
+          LimelightHelpers.SetRobotOrientation(name, rotation.getMeasure().in(Degrees), 0, 0, 0, 0, 0);
+
           // Select pose estimation method by localization mode.
           PoseEstimate estimation = pipeline.localization.equals(Localization.MEGATAG2)
             ? LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(name)
@@ -168,6 +184,7 @@ public class Limelight implements VisionIO {
             // Initialize a measurement object.
             Measurement measurement = new Measurement(estimation)
               .withStandardDeviation(Configuration.standardDeviation);
+            measurement.pose = new Pose2d(measurement.pose.getTranslation(), rotation);
             return measurement;
           }
         }
@@ -186,14 +203,16 @@ public class Limelight implements VisionIO {
       // Generic pipeline.
       final Pipeline pipeline = new Pipeline()
         .withIndex(0)
-        .withLocalization(Localization.MEGATAG2)
+        .withLocalization(Localization.MEGATAG1)
         .withIMUMode(IMUMode.INTERNAL);
       // Initialize cameras.
       cameras = List.of(
-        // Primary camera mounted perpendicular.
+        // Secondary camera mounted perpendicular.
         new Camera("limelight-gamma", Poses.gamma, pipeline),
-        // Secondary camera mounted forward.
-        new Camera("limelight-alpha", Poses.alpha, pipeline)
+        // Primary camera mounted forward.
+        new Camera("limelight-alpha", Poses.alpha, pipeline),
+        // Tertiary camera mounted perpendicular.
+        new Camera("limelight-beta",  Poses.beta,  pipeline)
       );
     }
 
@@ -202,10 +221,10 @@ public class Limelight implements VisionIO {
      * 
      * @return a real pose estimate.
      */
-    public List<Measurement> getMeasurements() {
+    public List<Measurement> getMeasurements(Rotation2d rotation) {
       // Stream cameras to collect all pose estimates.
       return cameras.stream()
-        .map(camera -> camera.getMeasurement())
+        .map(camera -> camera.getMeasurement(rotation))
         .collect(Collectors.toList());
     }
 
@@ -215,8 +234,8 @@ public class Limelight implements VisionIO {
      * 
      * @param inputs system for logging.
      */
-    public void updateInputs(VisionInputs inputs) {
-      List<Measurement> measurements = getMeasurements();
+    public void updateInputs(VisionInputs inputs, Rotation2d rotation) {
+      List<Measurement> measurements = getMeasurements(rotation);
       if ((measurements.size() > 0) && false) {
         // Stream all camera inputs.
         inputs.detecting = measurements.stream()

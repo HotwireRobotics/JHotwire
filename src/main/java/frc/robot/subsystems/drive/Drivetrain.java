@@ -100,14 +100,15 @@ public class Drivetrain extends Drive {
   
   /** Orient robot to face the hub. */
   private Command firingOrientation() {
-    return Commands.either(
-      pointToAngle(this::calculateHubRotation),
-      pointToAngle(this::calculatePassingRotation),
-      () -> getZone().equals(
-        Constants.getAlliance()
-          .equals(Alliance.Blue) 
-            ? Zone.BLUE 
-            : Zone.RED));
+    return pointToAngle(this::calculateHubRotation);
+    // return Commands.either(
+    //   pointToAngle(this::calculateHubRotation),
+    //   pointToAngle(this::calculatePassingRotation),
+    //   () -> getZone().equals(
+    //     Constants.getAlliance()
+    //       .equals(Alliance.Blue) 
+    //         ? Zone.BLUE 
+    //         : Zone.RED));
   }
 
   /**

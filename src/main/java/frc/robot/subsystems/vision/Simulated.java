@@ -7,6 +7,7 @@ import java.util.List;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Timer;
 
@@ -18,7 +19,7 @@ public class Simulated implements VisionIO {
    * 
    * @return a simulated pose estimate.
    */
-  public List<Measurement> getMeasurements() {
+  public List<Measurement> getMeasurements(Rotation2d rotation) {
     return null;
   }
 
@@ -27,5 +28,5 @@ public class Simulated implements VisionIO {
    * 
    * @param inputs system for logging.
    */
-  public void updateInputs(VisionInputs inputs) {}
+  public void updateInputs(VisionInputs inputs, Rotation2d rotation) {}
 }

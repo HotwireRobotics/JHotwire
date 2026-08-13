@@ -56,8 +56,8 @@ public class Actuator extends SubsystemBase {
   /** Left actuator motor; follows the right motor. */
   final Motor left;
 
-  // Test toggle for commanding the actuator in/out; defaults to extended.
-  private boolean toggle = true;
+  // Test toggle for commanding the actuator in/out; defaults to retracted.
+  private boolean toggle = false;
 
   public Actuator(
     Trigger trigger
@@ -71,6 +71,7 @@ public class Actuator extends SubsystemBase {
     // Configure devices.
     Application configuration = new Application(
       Direction.FORWARD, NeutralMode.BRAKE, Amps.of(40));
+    Feedforward feedforward = new Feedforward(0.1, 0, 0);
     right = new Motor(this, Constants.MotorIDs.ACTUATOR_RIGHT);
     right.apply(
       configuration);
@@ -79,6 +80,8 @@ public class Actuator extends SubsystemBase {
     left = new Motor(this, Constants.MotorIDs.ACTUATOR_LEFT);
     left.apply(
       configuration);
+    left.apply(
+      new Feedforward(Constants.Actuator.kP, 0, 0));
 
     // The left motor mirrors the leader.
     left.follow(right, FollowerMode.INVERSE);

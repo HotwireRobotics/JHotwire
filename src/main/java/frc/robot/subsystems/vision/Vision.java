@@ -125,10 +125,10 @@ public class Vision extends SubsystemBase {
     @Override
     public void periodic() {
         // Update inputs.
-        io.updateInputs(inputs);
+        io.updateInputs(inputs, rotation.get());
         
         // Get a pose estimate from the camera.
-        List<Measurement> measurements = io.getMeasurements();
+        List<Measurement> measurements = io.getMeasurements(rotation.get());
 
         // Trash empty measurements.
         if (measurements == null) return;

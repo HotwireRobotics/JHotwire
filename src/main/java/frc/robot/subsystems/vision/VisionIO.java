@@ -10,6 +10,7 @@ import org.littletonrobotics.junction.AutoLog;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.units.measure.Distance;
@@ -107,7 +108,7 @@ public interface VisionIO {
    * 
    * @return a pose estimate if the camera detects a valid target.
    */
-  public List<Measurement> getMeasurements();
+  public List<Measurement> getMeasurements(Rotation2d rotation);
 
   // Define inputs for vision subsystem.
   @AutoLog
@@ -138,5 +139,5 @@ public interface VisionIO {
   /**
    * Collect inputs from all vision systems.
    */
-  public void updateInputs(VisionInputs inputs);
+  public void updateInputs(VisionInputs inputs, Rotation2d rotation);
 }

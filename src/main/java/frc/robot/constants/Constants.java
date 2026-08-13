@@ -53,7 +53,7 @@ public final class Constants {
     public static final Time kDebounce = Seconds.of(0.18);
 
     // Static target velocities and tolerances.
-    public static final AngularVelocity kSpeed = RPM.of(2000);
+    public static final AngularVelocity kSpeed = RPM.of(4500);
     public static final AngularVelocity kVelocityTolerance = RotationsPerSecond.of(7);
     public static final AngularVelocity kZero = RPM.of(0);
 
@@ -87,23 +87,20 @@ public final class Constants {
 
     // CANcoder-referenced positions for the two actuator states.
     public static final Angle kRetracted = Rotations.of(0);
-    public static final Angle kExtended = Rotations.of(1.909);
+    public static final Angle kExtended = Rotations.of(2.12);
 
     // Position error within which the actuator is considered "on target".
-    public static final Angle kTolerance = Rotations.of(0.01);
-
-    // Higher values reach the target more quickly.
-    public static final double kSmoothing = 0.5;
+    public static final Angle kTolerance = Rotations.of(0.0);
 
     // Closed-loop proportional gain for the leader motor.
-    public static final double kP = 1.0;
+    public static final double kP = 8.0;
   }
 
   public static class Control {
     public static final PIDConstants translationPID = new PIDConstants(25.0, 0.0, 0.0);
-    public static final PIDConstants rotationPID = new PIDConstants(13.0, 0.0, 0.0);
-    public static final double ANGLE_KP = rotationPID.kP;
-    public static final double ANGLE_KD = rotationPID.kD;
+    public static final PIDConstants rotationPID = new PIDConstants(13.0, 0.0, 0.05);
+    public static final double ANGLE_KP = 5.0;
+    public static final double ANGLE_KD = 0.2;
   }
 
   public static class Tempo {
@@ -354,8 +351,7 @@ public final class Constants {
       ROLLERS    = 17,
       // Actuator mechanism. The right motor carries the CANcoder and leads.
       ACTUATOR_LEFT    = 18,
-      ACTUATOR_RIGHT   = 19,
-      ACTUATOR_ENCODER = 20;
+      ACTUATOR_RIGHT   = 20;
   }
 
   /**

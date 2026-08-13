@@ -22,6 +22,7 @@ import frc.robot.constants.Constants.Mode;
 import frc.robot.subsystems.drive.Drivetrain;
 import frc.robot.subsystems.drive.Drivetrain.Side;
 import frc.robot.subsystems.drive.Drivetrain.Zone;
+import frc.robot.subsystems.hopper.Hopper;
 import frc.robot.subsystems.actuator.Actuator;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.shooter.Shooter;
@@ -39,6 +40,7 @@ public class RobotContainer {
     public final Drivetrain drive;
     public final Vision vision;
     public final Intake intake;
+	public final Hopper hopper;
     public final Shooter shooter;
     public final Actuator actuator;
     public final PowerDistribution PDP;
@@ -62,6 +64,8 @@ public class RobotContainer {
                 drive::addVisionMeasurement);
         intake = new Intake(
                 Joysticks.driver.leftTrigger());
+		hopper = new Hopper(
+				Joysticks.driver.rightBumper());
         actuator = new Actuator(
                 Joysticks.driver.b());
         PDP = new PowerDistribution();
@@ -169,7 +173,7 @@ public class RobotContainer {
                         drive,
                         () -> -Constants.Joysticks.driver.getLeftY(),
                         () -> -Constants.Joysticks.driver.getLeftX(),
-                        () -> -Constants.Joysticks.driver.getRightX()));
+                        () ->  Constants.Joysticks.driver.getRightX()));
 
         // Hold wheel position.
         Constants.Joysticks.driver.rightBumper().onTrue(Commands.runOnce(drive::stopWithX, drive));

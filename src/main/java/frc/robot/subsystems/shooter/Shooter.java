@@ -75,35 +75,47 @@ public class Shooter extends SubsystemBase {
       : new WideShooter();
     this.inputs = new ShooterInputs();
 
+    Feedforward feedforward = new Feedforward(10, 0, 0);
+
     // Configure devices.
-    feeder = new Motor(this, Constants.MotorIDs.ROLLERS);
+    feeder = new Motor(this, Constants.MotorIDs.FEEDER);
     feeder.apply(
       new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
-    shooter = new Motor(this, Constants.MotorIDs.SHOOTER);
+    feeder.apply(
+      feedforward);
+      shooter = new Motor(this, Constants.MotorIDs.SHOOTER);
     shooter.apply(
       new Application(Direction.REVERSE, NeutralMode.COAST, Amps.of(40)));
+    shooter.apply(
+      feedforward);
     
     // Configure shooter motors with identical settings. 
-    Application configuration = new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40));
-    Feedforward feedforward = new Feedforward(0.1, 0, 0);
+    Application forward = new Application(Direction.REVERSE, NeutralMode.COAST, Amps.of(40));
+    Application reverse = new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40));
     primary    = new Motor(this, Constants.MotorIDs.PRIMARY); 
     primary.apply(
-      configuration);
+      forward);
     primary.apply(
       feedforward);
     secondary  = new Motor(this, Constants.MotorIDs.SECONDARY); 
     secondary.apply(
-      configuration);
+      reverse);
+    secondary.apply(
+      feedforward);
     tertiary   = new Motor(this, Constants.MotorIDs.TERTIARY); 
     tertiary.apply(
-      configuration);
+      reverse);
+    tertiary.apply(
+      feedforward);
     quaternary = new Motor(this, Constants.MotorIDs.QUATERNARY); 
     quaternary.apply(
-      configuration); 
+      forward); 
+    quaternary.apply(
+      feedforward);
 
     // Set follower control.
     secondary.follow(primary, FollowerMode.ALIGNED);
-    tertiary.follow(primary, FollowerMode.ALIGNED);
+    tertiary.follow(primary,  FollowerMode.INVERSE);
     quaternary.follow(primary, FollowerMode.ALIGNED);
 
     // Join all devices in a list for iteration.
