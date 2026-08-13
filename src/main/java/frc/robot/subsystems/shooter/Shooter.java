@@ -26,6 +26,8 @@ import frc.robot.hotwire.StateManager;
 import frc.robot.subsystems.shooter.ShooterIO.ShooterInputs;
 import frc.robot.subsystems.motors.Motor;
 import frc.robot.subsystems.motors.Motor.Application;
+import frc.robot.subsystems.motors.Motor.Feedback;
+import frc.robot.subsystems.motors.Motor.Feedforward;
 import frc.robot.subsystems.motors.MotorIO.Direction;
 import frc.robot.subsystems.motors.MotorIO.FollowerMode;
 import frc.robot.subsystems.motors.MotorIO.NeutralMode;
@@ -83,9 +85,12 @@ public class Shooter extends SubsystemBase {
     
     // Configure shooter motors with identical settings. 
     Application configuration = new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40));
+    Feedforward feedforward = new Feedforward(1, 0, 0);
     primary    = new Motor(this, Constants.MotorIDs.PRIMARY); 
     primary.apply(
       configuration);
+    primary.apply(
+      feedforward);
     secondary  = new Motor(this, Constants.MotorIDs.SECONDARY); 
     secondary.apply(
       configuration);

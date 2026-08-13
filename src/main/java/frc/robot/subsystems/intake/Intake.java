@@ -2,6 +2,7 @@ package frc.robot.subsystems.intake;
 
 import frc.robot.subsystems.motors.MotorIO.*;
 import frc.robot.subsystems.motors.Motor.Application;
+import frc.robot.subsystems.motors.Motor.Feedforward;
 
 import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.RPM;
@@ -58,6 +59,7 @@ public class Intake extends SubsystemBase {
     rollers = new Motor(this, Constants.MotorIDs.ROLLERS);
     rollers.apply(
       new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
+    rollers.apply(new Feedforward(1, 0, 0));
     
     // Triggers.
     trigger
