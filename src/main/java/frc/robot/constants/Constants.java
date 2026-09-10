@@ -50,14 +50,17 @@ public final class Constants {
     public static final Time kFiringTime = Seconds.of(7);
     public static final Time kUntilSecondMagnitude = Seconds.of(0.75); // 0.75
     public static final Time kUntilThirdMagnitude = Seconds.of(2.5); // 2.5
-    public static final Time kDebounce = Seconds.of(0.18);
+    public static final Time kDebounce = Seconds.of(0.3);
 
     // Static target velocities and tolerances.
-    public static final AngularVelocity kSpeed = RPM.of(4500);
-    public static final AngularVelocity kVelocityTolerance = RotationsPerSecond.of(7);
+    public static final AngularVelocity kSpeed = RPM.of(2500);
+    public static final AngularVelocity kVelocityTolerance = RPM.of(100);
     public static final AngularVelocity kZero = RPM.of(0);
 
-    // Drivetrain alignment error tolerance.
+    // Divisor on velocity target for upper shooter. Angles the output.
+    public static final double kDivisor = 2;
+
+    // Drivetrain alignment error tolerance. //! Not used.
     public static final Angle kAlignmentError = Degrees.of(4);
 
     // Current limits for shooter motors.
@@ -69,7 +72,7 @@ public final class Constants {
 
   public static class Intake {
     // Static speed for intake rollers.
-    public static final AngularVelocity kSpeed = RPM.of(1000);
+    public static final AngularVelocity kSpeed = RPM.of(2000);
     // Arm oscillation frequency.
     public static final Frequency kOscillationFrequency = Hertz.of(2.62);
   }
@@ -98,7 +101,7 @@ public final class Constants {
 
   public static class Control {
     public static final PIDConstants translationPID = new PIDConstants(25.0, 0.0, 0.0);
-    public static final PIDConstants rotationPID = new PIDConstants(13.0, 0.0, 0.05);
+    public static final PIDConstants rotationPID = new PIDConstants(1.0, 0.0, 0.0);
     public static final double ANGLE_KP = 5.0;
     public static final double ANGLE_KD = 0.2;
   }

@@ -59,7 +59,7 @@ public class Intake extends SubsystemBase {
     rollers = new Motor(this, Constants.MotorIDs.ROLLERS);
     rollers.apply(
       new Application(Direction.REVERSE, NeutralMode.COAST, Amps.of(40)));
-    rollers.apply(new Feedforward(1, 0, 0));
+    rollers.apply(new Feedforward(10, 0, 0));
     
     // Triggers.
     trigger

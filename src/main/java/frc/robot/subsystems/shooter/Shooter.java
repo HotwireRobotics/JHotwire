@@ -6,11 +6,13 @@ import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.Seconds;
 
 import java.util.Arrays;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 
+import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -48,10 +50,11 @@ public class Shooter extends SubsystemBase {
   public final StateManager<State> manager = new StateManager<State>(
     getName(), State.STOPPED
   );
+
+  /** Velocity sensor debouncer. */
+  private final Debouncer debouncer = new Debouncer(Constants.Shooter.kDebounce.in(Seconds));
   
   // Initialize device representatives.
-  /** Feeder rollers. */
-  final Motor feeder;
   /** Shooting rollers. */
   final Motor shooter;
   /** Primary shooter. */
@@ -75,52 +78,48 @@ public class Shooter extends SubsystemBase {
       : new WideShooter();
     this.inputs = new ShooterInputs();
 
-    Feedforward feedforward = new Feedforward(10, 0, 0);
+    // Control loop.
+    Feedforward feedforward = new Feedforward(0.8, 0, 0);
+    Feedback    feedback    = new Feedback(0.24998, 0.12009, 0);
 
     // Configure devices.
-    feeder = new Motor(this, Constants.MotorIDs.FEEDER);
-    feeder.apply(
-      new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
-    feeder.apply(
-      feedforward);
-      shooter = new Motor(this, Constants.MotorIDs.SHOOTER);
+    shooter = new Motor(this, Constants.MotorIDs.SHOOTER);
     shooter.apply(
-      new Application(Direction.REVERSE, NeutralMode.COAST, Amps.of(40)));
+      new Application(Direction.REVERSE, NeutralMode.COAST, Constants.Shooter.kCurrentLimit));
     shooter.apply(
       feedforward);
     
     // Configure shooter motors with identical settings. 
-    Application forward = new Application(Direction.REVERSE, NeutralMode.COAST, Amps.of(40));
-    Application reverse = new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40));
+    Application forward = new Application(Direction.REVERSE, NeutralMode.COAST, Constants.Shooter.kCurrentLimit);
+    Application reverse = new Application(Direction.FORWARD, NeutralMode.COAST, Constants.Shooter.kCurrentLimit);
     primary    = new Motor(this, Constants.MotorIDs.PRIMARY); 
     primary.apply(
       forward);
-    primary.apply(
-      feedforward);
     secondary  = new Motor(this, Constants.MotorIDs.SECONDARY); 
     secondary.apply(
       reverse);
-    secondary.apply(
-      feedforward);
     tertiary   = new Motor(this, Constants.MotorIDs.TERTIARY); 
     tertiary.apply(
       reverse);
-    tertiary.apply(
-      feedforward);
     quaternary = new Motor(this, Constants.MotorIDs.QUATERNARY); 
     quaternary.apply(
-      forward); 
-    quaternary.apply(
-      feedforward);
+      forward);
+
+    // Join all devices in a list for iteration.
+    shooting = new Motor[] {
+      primary, secondary, tertiary, quaternary};
+
+    // Configure control loop.
+    for (Motor m : shooting) {
+      m.apply(feedforward);
+      m.apply(feedback);
+    }
 
     // Set follower control.
     secondary.follow(primary, FollowerMode.ALIGNED);
     tertiary.follow(primary,  FollowerMode.INVERSE);
     quaternary.follow(primary, FollowerMode.ALIGNED);
 
-    // Join all devices in a list for iteration.
-    shooting = new Motor[] {
-      feeder, shooter, primary, secondary, tertiary, quaternary};
 
     // Triggers.
     trigger
@@ -144,7 +143,22 @@ public class Shooter extends SubsystemBase {
     return Commands.parallel(Arrays.stream(shooting)
       .map(motor -> motor.runVelocity(velocity))
       .toArray(Command[]::new))
+        .alongWith(shooter.runVelocity(velocity.div(Constants.Shooter.kDivisor)))
         .alongWith(manager.tag(State.SHOOTING));
+  }
+
+  /**
+   * Returns the state of the shooter as a boolean defining its
+   * shooting readiness.
+   * 
+   * @return Shooter readiness.
+   */
+  public boolean isReady() {
+    if (primary.getSetpoint().isPresent()) {
+      return debouncer.calculate(
+          primary.getVelocity().isNear(primary.getSetpoint().get().getVelocity().get(), Constants.Shooter.kVelocityTolerance) &&
+          shooter.getVelocity().isNear(shooter.getSetpoint().get().getVelocity().get(), Constants.Shooter.kVelocityTolerance));
+    } else return false;
   }
 
   /**
@@ -155,6 +169,7 @@ public class Shooter extends SubsystemBase {
     return Commands.parallel(Arrays.stream(shooting)
       .map(motor -> motor.runPercent(0))
       .toArray(Command[]::new))
+        .alongWith(shooter.runPercent(0))
         .alongWith(manager.tag(State.STOPPED));
   }
 

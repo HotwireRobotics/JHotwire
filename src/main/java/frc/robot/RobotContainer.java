@@ -8,11 +8,13 @@ import com.pathplanner.lib.commands.PathPlannerAuto;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.applicable.ctre.DriveCommands;
 import frc.robot.applicable.simulation.Handler;
@@ -56,18 +58,20 @@ public class RobotContainer {
     public RobotContainer() {
         // Initialize subsystems.
         drive = new Drivetrain(
-                Joysticks.driver.x());
+                Joysticks.operator.x());
         shooter = new Shooter(
-                Joysticks.driver.rightTrigger());
+                Joysticks.operator.rightTrigger()
+                  .or(Joysticks.driver.rightTrigger()).or(Joysticks.operator.rightBumper()));
         vision = new Vision(
                 drive::getPose, drive::getRotation,
                 drive::addVisionMeasurement);
         intake = new Intake(
-                Joysticks.driver.leftTrigger());
-		hopper = new Hopper(
-				Joysticks.driver.rightBumper());
-        actuator = new Actuator(
-                Joysticks.driver.b());
+                Joysticks.operator.leftTrigger().or(Joysticks.driver.leftTrigger()));
+        hopper = new Hopper(
+                Joysticks.operator.leftBumper().or(Joysticks.driver.leftBumper())
+                //   .or(new Trigger(() -> shooter.isReady()))
+        );
+        actuator = new Actuator(Joysticks.operator.a());
         PDP = new PowerDistribution();
         PDP.setSwitchableChannel(true);
 
@@ -109,11 +113,11 @@ public class RobotContainer {
         NamedCommands.registerCommand("Stop Intaking", intake.stop().withTimeout(0.1));
 
         // Actuator (intake deployment) auto markers.
-        NamedCommands.registerCommand("Lower Intake", Commands.runOnce(actuator::extend));
+        NamedCommands.registerCommand("Lower Intake", Commands.runOnce(actuator::extend ));
         NamedCommands.registerCommand("Raise Intake", Commands.runOnce(actuator::retract));
-        NamedCommands.registerCommand("Drop Arm", Commands.runOnce(actuator::extend));
+        NamedCommands.registerCommand("Drop Arm",     Commands.runOnce(actuator::extend ));
 
-        NamedCommands.registerCommand("Intake Period", Commands.none());
+        NamedCommands.registerCommand("Intake Period",   Commands.none());
         NamedCommands.registerCommand("Occilate Intake", Commands.none());
 
         // Shooter auto markers (non-blocking, same reasoning as the intake).
@@ -174,9 +178,6 @@ public class RobotContainer {
                         () -> -Constants.Joysticks.driver.getLeftY(),
                         () -> -Constants.Joysticks.driver.getLeftX(),
                         () ->  Constants.Joysticks.driver.getRightX()));
-
-        // Hold wheel position.
-        Constants.Joysticks.driver.rightBumper().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
         // Zero pose heading.
         Constants.Joysticks.driver

@@ -44,6 +44,8 @@ public class Hopper extends SubsystemBase {
   );
 
   // Initialize device representatives.
+  /** Feeder rollers. */
+  final Motor feeder;
   /** Intake rollers. */
   final Motor hopper;
 
@@ -52,15 +54,22 @@ public class Hopper extends SubsystemBase {
   ) {
     // Initialize abstraction.
     io = Constants.mode.equals(Mode.SIM) 
-      ? new Simulation() 
+      ? new Simulation()
       : new Belly();
     this.inputs = new HopperInputs();
 
     // Configure devices.
+    Feedforward feedforward = new Feedforward(1, 0, 0);
+    feeder = new Motor(this, Constants.MotorIDs.FEEDER);
+    feeder.apply(
+      new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
+    feeder.apply(
+      feedforward);
     hopper = new Motor(this, Constants.MotorIDs.HOPPER);
     hopper.apply(
       new Application(Direction.FORWARD, NeutralMode.COAST, Amps.of(40)));
-    hopper.apply(new Feedforward(1, 0, 0));
+    hopper.apply(
+      feedforward);
     
     // Triggers.
     trigger
@@ -73,6 +82,7 @@ public class Hopper extends SubsystemBase {
     // Update subsystem inputs.
     io.updateInputs(inputs);
     Logs.log(hopper);
+    Logs.log(feeder);
   }
 
   /** 
@@ -85,7 +95,7 @@ public class Hopper extends SubsystemBase {
       manager.tag(() -> (velocity.gt(RPM.of(0)) 
         ? State.FORWARD 
         : State.REVERSE)
-      ));
+      )).alongWith(feeder.runVelocity(velocity));
   }
 
   /** 
@@ -93,7 +103,7 @@ public class Hopper extends SubsystemBase {
    */
   private Command runHalt() {
     return hopper.runPercent(0).alongWith(
-      manager.tag(State.STOPPED));
+      manager.tag(State.STOPPED)).alongWith(feeder.runPercent(0));
   }
 
   /**
