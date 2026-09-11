@@ -96,7 +96,9 @@ public class Actuator extends SubsystemBase {
     io.updateInputs(inputs);
 
     // Drive the leader (the follower tracks it) toward the active target.
-    Angle target = toggle ? Constants.Actuator.kExtended : Constants.Actuator.kRetracted;
+    Angle target = toggle
+      ? Constants.Actuator.kExtended.get()
+      : Constants.Actuator.kRetracted.get();
     right.putPosition(target);
     io.setTarget(target);
 
@@ -137,9 +139,9 @@ public class Actuator extends SubsystemBase {
    * @return extension fraction.
    */
   public double getExtension() {
-    double range = Constants.Actuator.kExtended
-      .minus(Constants.Actuator.kRetracted).in(Rotations);
-    Angle travelled = right.getPosition().minus(Constants.Actuator.kRetracted);
+    double range = Constants.Actuator.kExtended.get()
+      .minus(Constants.Actuator.kRetracted.get()).in(Rotations);
+    Angle travelled = right.getPosition().minus(Constants.Actuator.kRetracted.get());
     return MathUtil.clamp(travelled.in(Rotations) / range, 0, 1);
   }
 
@@ -151,8 +153,8 @@ public class Actuator extends SubsystemBase {
    * @return intake displacement, in the robot frame.
    */
   public Translation3d getDisplacement() {
-    double distance = Constants.Actuator.kTravel.in(Meters) * getExtension();
-    double angle = Constants.Actuator.kAngle.in(Radians);
+    double distance = Constants.Actuator.kTravel.get().in(Meters) * getExtension();
+    double angle = Constants.Actuator.kAngle.get().in(Radians);
     return new Translation3d(
       distance * Math.cos(angle),
       0,

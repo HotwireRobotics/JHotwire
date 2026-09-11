@@ -58,9 +58,10 @@ public class Logs {
         motor.getTorque().in(PoundFoot),
         "lb-ft");
 
-    // Log setpoint if it exists.
+    // Log setpoint if it exists. An empty Optional means the motor is not
+    // being commanded; the reference is never null.
     Optional<Setpoint> setpoint = motor.getSetpoint();
-    if (setpoint != null) return;
+    if (setpoint.isEmpty()) return;
 
     if (!setpoint.get().getVelocity().isEmpty()) {
       Logger.recordOutput(

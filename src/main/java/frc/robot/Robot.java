@@ -9,8 +9,10 @@ import static edu.wpi.first.units.Units.Seconds;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Time;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -97,6 +99,9 @@ public class Robot extends LoggedRobot {
     // Control command scheduler and log data.
     CommandScheduler.getInstance().run();
 
+    // Dispatch any newly transcribed voice command.
+    container.voice.poll();
+
     // Log pose data.
     Logger.recordOutput("Robot Pose", container.drive.getPose());
     Logger.recordOutput("IsNeutral", container.drive.getZone().equals(Zone.NEUTRAL));
@@ -122,6 +127,9 @@ public class Robot extends LoggedRobot {
   @Override
   public void disabledInit() {
     Logger.recordOutput("Robot/Mode", "Disabled");
+
+    // Drop any voice command so it cannot outlive the enable that heard it.
+    container.voice.clear();
   }
 
   @Override
@@ -186,6 +194,18 @@ public class Robot extends LoggedRobot {
 
   @Override
   public void simulationInit() {
+    // Enable the simulated robot so mechanisms and voice commands can be
+    // exercised without a Driver Station attached. WPILib only calls this
+    // method under simulation, so the real robot never reaches it.
+    //
+    // Skipped when a Driver Station is already attached, and overwritten by the
+    // next packet from one that attaches later, so the Driver Station keeps
+    // authority over enable and disable.
+    if (!DriverStation.isDSAttached()) {
+      DriverStationSim.setDsAttached(true);
+      DriverStationSim.setEnabled(true);
+      DriverStationSim.notifyNewData();
+    }
   }
 
   @Override

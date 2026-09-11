@@ -116,7 +116,7 @@ public class Handler {
     Time time = Constants.Tempo.getTime();
     if (((counter > 0) && ((time.in(Seconds) % ((10 / ((-50 * motion.in(Degrees)) + (3 * counter)))))
         + (Math.random() / 10)) < 0.05)) {
-      gamepieceSimulation.launchFuel(lineate(velocity.get(), Constants.Shooter.kWheelRadius));
+      gamepieceSimulation.launchFuel(lineate(velocity.get(), Constants.Shooter.kWheelRadius.get()));
       counter--;
     }
   }

@@ -22,6 +22,7 @@ import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.hotwire.Tunable;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
@@ -45,65 +46,84 @@ public final class Constants {
   }
 
   public static class Shooter {
-    // Static time intervals for firing states.
-    public static final Time kChargeUpTime = Seconds.of(0.1);
-    public static final Time kFiringTime = Seconds.of(7);
-    public static final Time kUntilSecondMagnitude = Seconds.of(0.75); // 0.75
-    public static final Time kUntilThirdMagnitude = Seconds.of(2.5); // 2.5
-    public static final Time kDebounce = Seconds.of(0.3);
+    // Tunable time intervals for firing states. Read when commands are built.
+    public static final Tunable<Time> kChargeUpTime =
+        new Tunable<>("Shooter/ChargeUpTime", 0.1, Seconds::of);
+    public static final Tunable<Time> kFiringTime =
+        new Tunable<>("Shooter/FiringTime", 7, Seconds::of);
+    public static final Tunable<Time> kUntilSecondMagnitude =
+        new Tunable<>("Shooter/UntilSecondMagnitude", 0.75, Seconds::of);
+    public static final Tunable<Time> kUntilThirdMagnitude =
+        new Tunable<>("Shooter/UntilThirdMagnitude", 2.5, Seconds::of);
+    public static final Tunable<Time> kDebounce =
+        new Tunable<>("Shooter/Debounce", 0.3, Seconds::of);
 
-    // Static target velocities and tolerances.
-    public static final AngularVelocity kSpeed = RPM.of(2500);
-    public static final AngularVelocity kVelocityTolerance = RPM.of(100);
+    // Tunable target velocities and tolerances.
+    public static final Tunable<AngularVelocity> kSpeed =
+        new Tunable<>("Shooter/Speed", 2500, RPM::of);
+    public static final Tunable<AngularVelocity> kVelocityTolerance =
+        new Tunable<>("Shooter/VelocityTolerance", 100, RPM::of);
     public static final AngularVelocity kZero = RPM.of(0);
 
     // Divisor on velocity target for upper shooter. Angles the output.
-    public static final double kDivisor = 2;
+    public static final Tunable.Scalar kDivisor =
+        new Tunable.Scalar("Shooter/Divisor", 2);
 
     // Drivetrain alignment error tolerance. //! Not used.
-    public static final Angle kAlignmentError = Degrees.of(4);
+    public static final Tunable<Angle> kAlignmentError =
+        new Tunable<>("Shooter/AlignmentError", 4, Degrees::of);
 
-    // Current limits for shooter motors.
+    // Current limits for shooter motors. Applied once, at device configuration.
     public static final Current kCurrentLimit = Amps.of(80);
 
     // Average wheel radius.
-    public static final Distance kWheelRadius = Inches.of(1.5);
+    public static final Tunable<Distance> kWheelRadius =
+        new Tunable<>("Shooter/WheelRadius", 1.5, Inches::of);
   }
 
   public static class Intake {
-    // Static speed for intake rollers.
-    public static final AngularVelocity kSpeed = RPM.of(2000);
+    // Tunable speed for intake rollers.
+    public static final Tunable<AngularVelocity> kSpeed =
+        new Tunable<>("Intake/Speed", 2000, RPM::of);
     // Arm oscillation frequency.
-    public static final Frequency kOscillationFrequency = Hertz.of(2.62);
+    public static final Tunable<Frequency> kOscillationFrequency =
+        new Tunable<>("Intake/OscillationFrequency", 2.62, Hertz::of);
   }
 
   public static class Hopper {
-    // Static speed for hopper rollers.
-    public static final AngularVelocity kSpeed = RPM.of(1000);
+    // Tunable speed for hopper rollers.
+    public static final Tunable<AngularVelocity> kSpeed =
+        new Tunable<>("Hopper/Speed", 1000, RPM::of);
   }
 
   public static class Actuator {
     // Linear travel of the intake when the actuator fully extends.
-    public static final Distance kTravel = Feet.of(1);
+    public static final Tunable<Distance> kTravel =
+        new Tunable<>("Actuator/Travel", 1, Feet::of);
     // Inclination of the linear travel relative to horizontal.
-    public static final Angle kAngle = Degrees.of(25);
+    public static final Tunable<Angle> kAngle =
+        new Tunable<>("Actuator/Angle", 25, Degrees::of);
 
     // CANcoder-referenced positions for the two actuator states.
-    public static final Angle kRetracted = Rotations.of(0);
-    public static final Angle kExtended = Rotations.of(2.12);
+    public static final Tunable<Angle> kRetracted =
+        new Tunable<>("Actuator/Retracted", 0, Rotations::of);
+    public static final Tunable<Angle> kExtended =
+        new Tunable<>("Actuator/Extended", 2.12, Rotations::of);
 
     // Position error within which the actuator is considered "on target".
-    public static final Angle kTolerance = Rotations.of(0.0);
+    public static final Tunable<Angle> kTolerance =
+        new Tunable<>("Actuator/Tolerance", 0.0, Rotations::of);
 
-    // Closed-loop proportional gain for the leader motor.
+    // Closed-loop proportional gain for the leader motor. Applied once, at
+    // device configuration.
     public static final double kP = 8.0;
   }
 
   public static class Control {
     public static final PIDConstants translationPID = new PIDConstants(25.0, 0.0, 0.0);
     public static final PIDConstants rotationPID = new PIDConstants(1.0, 0.0, 0.0);
-    public static final double ANGLE_KP = 5.0;
-    public static final double ANGLE_KD = 0.2;
+    public static final double ANGLE_KP = 13.0;
+    public static final double ANGLE_KD = 0.0;
   }
 
   public static class Tempo {
@@ -179,6 +199,11 @@ public final class Constants {
     }
   }
 
+  /**
+   * Get the alliance color for this robot.
+   *
+   * @return
+   */
   /**
    * Get the alliance color for this robot.
    *
@@ -313,7 +338,8 @@ public final class Constants {
     };
   }
 
-  public static final double lerp = 1.7;
+  public static final Tunable.Scalar lerp =
+      new Tunable.Scalar("Lerp", 1.7);
 
   /** Limelight configuration and constants. */
   public static class Limelight {
@@ -460,8 +486,10 @@ public final class Constants {
   }
 
   // Derived from relationship between distance (m) and rotation (RPM).
-  public static final double base = 1000.92838;
-  public static final double exponential = 1.00529;
+  public static final Tunable.Scalar base =
+      new Tunable.Scalar("Shooter/Regression/Base", 1000.92838);
+  public static final Tunable.Scalar exponential =
+      new Tunable.Scalar("Shooter/Regression/Exponential", 1.00529);
 
   /**
    * Calculate shooter velocity from distance using an exponential regression.
@@ -471,7 +499,7 @@ public final class Constants {
    */
   public static AngularVelocity regress(Distance distance) {
     Logger.recordOutput("Shooter/Distance", distance.in(Inches));
-    return RPM.of(base * Math.pow(exponential, distance.in(Inches)));
+    return RPM.of(base.value() * Math.pow(exponential.value(), distance.in(Inches)));
   }
 
   public static enum Mode {

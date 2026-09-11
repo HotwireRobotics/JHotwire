@@ -39,7 +39,7 @@ public class Drivetrain extends Drive {
 
   
   /** Returns the Rotation2d the robot needs to face the hub. */
-  private Rotation2d calculateHubRotation() {
+  public Rotation2d calculateHubRotation() {
     // Get poses.
     Pose2d robotPose = getPose();
     Pose2d hubPose = Constants.Poses.hub.getPose();

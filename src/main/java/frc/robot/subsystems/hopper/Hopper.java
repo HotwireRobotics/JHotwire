@@ -21,6 +21,8 @@ import frc.robot.subsystems.intake.IntakeIO.IntakeInputs;
 import frc.robot.subsystems.motors.Motor;
 import frc.robot.subsystems.vision.VisionIO.VisionInputs;
 
+import java.util.function.Supplier;
+
 /**
  * <strong>Intake Subsystem</strong>
  * <p>Subsystem for controlling intake roller
@@ -90,20 +92,24 @@ public class Hopper extends SubsystemBase {
    * 
    * @param velocity Angular velocity to run rollers at.
    */
-  private Command runVelocity(AngularVelocity velocity) {
+  private Command runVelocity(Supplier<AngularVelocity> velocity) {
     return hopper.runVelocity(velocity).alongWith(
-      manager.tag(() -> (velocity.gt(RPM.of(0)) 
+      manager.tag(() -> (velocity.get().gt(RPM.of(0)) 
         ? State.FORWARD 
         : State.REVERSE)
-      )).alongWith(feeder.runVelocity(velocity));
+      )).alongWith(feeder.runVelocity(velocity))
+      // Report the halt however the command ends, including a timeout or a
+      // cancellation, so the state tracks the rollers rather than the intent.
+      .finallyDo(() -> manager.set(State.STOPPED));
   }
 
   /** 
-   * Halt intake rollers. 
+   * Halt hopper rollers. Ends once the outputs are released, so a timed run
+   * finishes instead of holding the scheduler forever.
    */
   private Command runHalt() {
-    return hopper.runPercent(0).alongWith(
-      manager.tag(State.STOPPED)).alongWith(feeder.runPercent(0));
+    return hopper.runStop().alongWith(
+      manager.tag(State.STOPPED)).alongWith(feeder.runStop());
   }
 
   /**

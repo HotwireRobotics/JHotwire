@@ -17,6 +17,7 @@ import frc.robot.subsystems.motors.MotorIO.Setpoint;
 import static edu.wpi.first.units.Units.Degrees;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.littletonrobotics.junction.Logger;
 
@@ -82,24 +83,53 @@ public class Motor {
 
   // Command builders.
   /**
-   * Run the motor to a position.
+   * Run the motor to a position. The request is left in place when the command
+   * ends, so the mechanism holds rather than dropping.
    */
   public Command runPosition(Angle position) {
     return Commands.run(() -> putPosition(position));
   }
+
+  /**
+   * Run the motor to a supplied position, re-read every cycle. Accepts a
+   * {@link frc.robot.hotwire.Tunable} directly, so a dashboard slider moves the
+   * motor while the command runs.
+   */
+  public Command runPosition(Supplier<Angle> position) {
+    return Commands.run(() -> putPosition(position.get()));
+  }
   
   /**
-   * Run the motor to a velocity.
+   * Run the motor to a velocity, neutralizing the output when the command ends.
+   * Phoenix control requests persist until superseded, so without the release
+   * the motor keeps spinning long after the command is done.
    */
   public Command runVelocity(AngularVelocity velocity) {
-    return Commands.run(() -> io.putVelocity(velocity));
+    return Commands.runEnd(() -> io.putVelocity(velocity), io::stop);
   }
 
   /**
-   * Run the motor at a percent output.
+   * Run the motor to a supplied velocity, re-read every cycle. Accepts a
+   * {@link frc.robot.hotwire.Tunable} directly, so a dashboard slider moves the
+   * motor while the command runs. Releases the output as above.
+   */
+  public Command runVelocity(Supplier<AngularVelocity> velocity) {
+    return Commands.runEnd(() -> io.putVelocity(velocity.get()), io::stop);
+  }
+
+  /**
+   * Run the motor at a percent output, neutralizing it when the command ends.
    */
   public Command runPercent(double percent) {
-    return Commands.run(() -> io.putPercent(percent));
+    return Commands.runEnd(() -> io.putPercent(percent), io::stop);
+  }
+
+  /**
+   * Neutralize the motor and finish. Ends on the cycle it is scheduled, unlike
+   * the run builders above, which hold their output until cancelled.
+   */
+  public Command runStop() {
+    return Commands.runOnce(io::stop);
   }
 
   /**

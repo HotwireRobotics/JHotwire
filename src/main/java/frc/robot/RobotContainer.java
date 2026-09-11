@@ -21,6 +21,7 @@ import frc.robot.applicable.simulation.Handler;
 import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.Joysticks;
 import frc.robot.constants.Constants.Mode;
+import frc.robot.hotwire.Voice;
 import frc.robot.subsystems.drive.Drivetrain;
 import frc.robot.subsystems.drive.Drivetrain.Side;
 import frc.robot.subsystems.drive.Drivetrain.Zone;
@@ -42,10 +43,14 @@ public class RobotContainer {
     public final Drivetrain drive;
     public final Vision vision;
     public final Intake intake;
-	public final Hopper hopper;
+    public final Hopper hopper;
     public final Shooter shooter;
     public final Actuator actuator;
     public final PowerDistribution PDP;
+
+    // Voice interface, and the flag its test verb toggles.
+    public final Voice voice = new Voice();
+    private boolean test = false;
 
     // Simulation.
     // public final Handler simulation;
@@ -93,6 +98,7 @@ public class RobotContainer {
 
         // Configure button bindings.
         configureButtonBindings();
+        configureVoiceBindings();
 
         // Configure dashboard inputs.
         alignment = new LoggedDashboardChooser<>("Dashboard/alignment", new SendableChooser<Boolean>());
@@ -126,7 +132,7 @@ public class RobotContainer {
 
         // Firing sequence: spin the shooter for the firing duration, then stop.
         NamedCommands.registerCommand("Firing Sequence", Commands.sequence(
-                shooter.run().withTimeout(Constants.Shooter.kFiringTime),
+                shooter.run().withTimeout(Constants.Shooter.kFiringTime.get()),
                 shooter.stop().withTimeout(0.1)));
 
         // Autonomous
@@ -170,14 +176,33 @@ public class RobotContainer {
         autoChooser.addOption("CS-Bineutral", new PathPlannerAuto("CS-Bineutral"));
     }
 
+    
+	/**
+	 * Orient the robot to face a supplied angle.
+	 *
+	 * @param rotation
+	 */
+	private Command pointToAngle(Supplier<Rotation2d> rotation) {
+		return DriveCommands.joystickDriveAtAngle(
+			drive,
+			() -> -Constants.Joysticks.driver.getLeftY(),
+			() -> -Constants.Joysticks.driver.getLeftX(),
+			rotation
+		);
+	}
+
     private void configureButtonBindings() {
         // Third person drive command.
         drive.setDefaultCommand(
-                DriveCommands.joystickDrive(
-                        drive,
-                        () -> -Constants.Joysticks.driver.getLeftY(),
-                        () -> -Constants.Joysticks.driver.getLeftX(),
-                        () ->  Constants.Joysticks.driver.getRightX()));
+			DriveCommands.joystickDrive(
+				drive,
+				() -> -Constants.Joysticks.driver.getLeftY(),
+				() -> -Constants.Joysticks.driver.getLeftX(),
+				() ->  Constants.Joysticks.driver.getRightX()));
+
+		Constants.Joysticks.operator
+				.x()
+				.whileTrue(pointToAngle(() -> drive.calculateHubRotation()));
 
         // Zero pose heading.
         Constants.Joysticks.driver
@@ -187,6 +212,38 @@ public class RobotContainer {
                                 .getTranslation(), Rotation2d.kZero)),
                         drive)
                         .ignoringDisable(true));
+    }
+
+    /**
+     * Bind spoken verbs to subsystem commands. Durations are spoken; the
+     * fallbacks below apply to a phrase that carries none.
+     */
+    private void configureVoiceBindings() {
+        // Mechanisms, run for the spoken duration.
+        voice.bind("intake",  time -> intake.run().withTimeout(time.orElse(Seconds.of(5))));
+        voice.bind("hopper",  time -> hopper.run().withTimeout(time.orElse(Seconds.of(5))));
+        voice.bind("shooter", time -> shooter.run()
+                .withTimeout(time.orElse(Constants.Shooter.kFiringTime.get())));
+
+        // Actuator states. Both are momentary; Actuator.periodic() holds the
+        // commanded position from there on.
+        voice.bind("extend",  time -> Commands.runOnce(actuator::extend));
+        voice.bind("retract", time -> Commands.runOnce(actuator::retract));
+
+        // Flips a flag on NetworkTables and moves nothing, so the path from
+        // microphone to scheduler can be checked on a disabled robot.
+        voice.bind("test", time -> Commands.runOnce(() -> {
+                test = !test;
+                Logger.recordOutput("Voice/Test", test);
+            }).ignoringDisable(true));
+
+        // Halt every mechanism and the drivetrain. Voice cancels everything
+        // already running before this is scheduled.
+        voice.bind("stop", time -> Commands.parallel(
+                intake.stop(),
+                hopper.stop(),
+                shooter.stop(),
+                Commands.runOnce(() -> drive.stop())).ignoringDisable(true));
     }
 
     /**

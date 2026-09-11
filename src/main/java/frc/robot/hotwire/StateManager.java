@@ -15,6 +15,9 @@ public class StateManager<T extends Enum<T>> {
   public StateManager(String name, T defaultState) {
     this.name = name;
     this.state = defaultState;
+
+    // Publish the starting state; set() only records changes.
+    Logger.recordOutput(name + "/State", state.toString());
   }
 
   public void set(T newState) {

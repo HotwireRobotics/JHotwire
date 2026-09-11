@@ -9,6 +9,7 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.Seconds;
 
 import java.util.Arrays;
+import java.util.function.Supplier;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 
@@ -52,7 +53,7 @@ public class Shooter extends SubsystemBase {
   );
 
   /** Velocity sensor debouncer. */
-  private final Debouncer debouncer = new Debouncer(Constants.Shooter.kDebounce.in(Seconds));
+  private final Debouncer debouncer = new Debouncer(Constants.Shooter.kDebounce.get().in(Seconds));
   
   // Initialize device representatives.
   /** Shooting rollers. */
@@ -138,13 +139,17 @@ public class Shooter extends SubsystemBase {
    * 
    * @param velocity Target velocity.
    */
-  private Command runVelocity(AngularVelocity velocity) {
+  private Command runVelocity(Supplier<AngularVelocity> velocity) {
     // Stream shooting commands.
     return Commands.parallel(Arrays.stream(shooting)
       .map(motor -> motor.runVelocity(velocity))
       .toArray(Command[]::new))
-        .alongWith(shooter.runVelocity(velocity.div(Constants.Shooter.kDivisor)))
-        .alongWith(manager.tag(State.SHOOTING));
+        .alongWith(shooter.runVelocity(
+          () -> velocity.get().div(Constants.Shooter.kDivisor.get())))
+        .alongWith(manager.tag(State.SHOOTING))
+        // Report the halt however the command ends, including a timeout or a
+        // cancellation, so the state tracks the motors rather than the intent.
+        .finallyDo(() -> manager.set(State.STOPPED));
   }
 
   /**
@@ -156,20 +161,21 @@ public class Shooter extends SubsystemBase {
   public boolean isReady() {
     if (primary.getSetpoint().isPresent()) {
       return debouncer.calculate(
-          primary.getVelocity().isNear(primary.getSetpoint().get().getVelocity().get(), Constants.Shooter.kVelocityTolerance) &&
-          shooter.getVelocity().isNear(shooter.getSetpoint().get().getVelocity().get(), Constants.Shooter.kVelocityTolerance));
+          primary.getVelocity().isNear(primary.getSetpoint().get().getVelocity().get(), Constants.Shooter.kVelocityTolerance.get()) &&
+          shooter.getVelocity().isNear(shooter.getSetpoint().get().getVelocity().get(), Constants.Shooter.kVelocityTolerance.get()));
     } else return false;
   }
 
   /**
-   * Stop shooter motors.
+   * Stop shooter motors. Ends once the outputs are released, so a timed run
+   * finishes instead of holding the scheduler forever.
    */
   private Command runHalt() {
     // Stream halt commands.
     return Commands.parallel(Arrays.stream(shooting)
-      .map(motor -> motor.runPercent(0))
+      .map(motor -> motor.runStop())
       .toArray(Command[]::new))
-        .alongWith(shooter.runPercent(0))
+        .alongWith(shooter.runStop())
         .alongWith(manager.tag(State.STOPPED));
   }
 
@@ -194,7 +200,7 @@ public class Shooter extends SubsystemBase {
 
     public ShootingVector(AngularVelocity velocity, Pose3d position) {
       this.position = position;
-      final double vel = velocity.in(RotationsPerSecond) * Constants.Shooter.kWheelRadius.in(Meters);
+      final double vel = velocity.in(RotationsPerSecond) * Constants.Shooter.kWheelRadius.get().in(Meters);
 
       // Normalize to vector.
       this.velocity = new Translation3d(

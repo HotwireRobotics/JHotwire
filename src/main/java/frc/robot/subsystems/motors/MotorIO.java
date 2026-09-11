@@ -112,12 +112,14 @@ public interface MotorIO {
       this.velocity = velocity;
     }
 
+    /** Empty unless this is a position setpoint. */
     public Optional<Angle> getPosition() {
-      return Optional.of(position);
+      return Optional.ofNullable(position);
     }
 
+    /** Empty unless this is a velocity setpoint. */
     public Optional<AngularVelocity> getVelocity() {
-      return Optional.of(velocity);
+      return Optional.ofNullable(velocity);
     }
 
     public static Setpoint of(Angle position) {

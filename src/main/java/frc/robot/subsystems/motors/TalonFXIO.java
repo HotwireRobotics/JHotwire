@@ -89,10 +89,11 @@ public class TalonFXIO implements MotorIO {
     motor.set(percent);
   }
 
-  /** Stop the motor. */
+  /** Stop the motor, dropping the setpoint it was holding. */
   @Override
   public void stop() {
     motor.stopMotor();
+    _target = Optional.empty();
   }
 
   /** Configure proportional gain (kP). */
