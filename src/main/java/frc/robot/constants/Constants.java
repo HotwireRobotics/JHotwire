@@ -121,9 +121,9 @@ public final class Constants {
 
   public static class Control {
     public static final PIDConstants translationPID = new PIDConstants(25.0, 0.0, 0.0);
-    public static final PIDConstants rotationPID = new PIDConstants(1.0, 0.0, 0.0);
-    public static final double ANGLE_KP = 13.0;
-    public static final double ANGLE_KD = 0.0;
+    public static final PIDConstants rotationPID = new PIDConstants(13.0, 0.0, 0.0);
+    public static final double ANGLE_KP = rotationPID.kP;
+    public static final double ANGLE_KD = rotationPID.kD;
   }
 
   public static class Tempo {

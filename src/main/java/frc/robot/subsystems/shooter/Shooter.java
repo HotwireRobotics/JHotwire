@@ -9,6 +9,7 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.Seconds;
 
 import java.util.Arrays;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -18,6 +19,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -52,6 +54,12 @@ public class Shooter extends SubsystemBase {
     getName(), State.STOPPED
   );
 
+  /** Distance to the target the regression is read at. */
+  private final Supplier<Distance> distance;
+
+  /** Held to take the velocity off the regression rather than the fixed speed. */
+  private final BooleanSupplier regression;
+
   /** Velocity sensor debouncer. */
   private final Debouncer debouncer = new Debouncer(Constants.Shooter.kDebounce.get().in(Seconds));
   
@@ -70,9 +78,22 @@ public class Shooter extends SubsystemBase {
   // Shooting array.
   final Motor[] shooting;
 
+  /**
+   * @param trigger Runs the shooter.
+   * @param regression Selects where the velocity comes from while the shooter
+   *     runs: held, the regression for the current distance, and otherwise the
+   *     published fixed speed. Runs nothing on its own.
+   * @param distance Distance to the target the regression is read at.
+   */
   public Shooter(
-    Trigger trigger
+    Trigger trigger,
+    BooleanSupplier regression,
+    Supplier<Distance> distance
   ) {
+    // Stash the velocity sources.
+    this.distance = distance;
+    this.regression = regression;
+
     // Initialize abstraction.
     io = Constants.mode.equals(Mode.SIM) 
       ? new Simulation() 
@@ -122,10 +143,12 @@ public class Shooter extends SubsystemBase {
     quaternary.follow(primary, FollowerMode.ALIGNED);
 
 
-    // Triggers.
-    trigger
-      .whileTrue(runVelocity(Constants.Shooter.kSpeed))
-      .onFalse(runHalt());
+    // Triggers. One command either way: the regression modifier moves the
+    // velocity the command reads, so it can be taken and released mid-shot
+    // without the shooter stopping.
+    // trigger
+    //   .whileTrue(runVelocity(this::getShootingSpeed))
+    //   .onFalse(runHalt());
   }
 
   @Override
@@ -184,7 +207,28 @@ public class Shooter extends SubsystemBase {
    * Run intake rollers.
    */
   public Command run() {
-    return runVelocity(Constants.Shooter.kSpeed);
+    return runVelocity(this::getShootingSpeed);
+  }
+
+  /**
+   * Velocity the shooter is held at. Read every cycle the shooter runs, so the
+   * modifier can be taken or released, and the robot can move, mid-shot.
+   *
+   * @return Target velocity.
+   */
+  public AngularVelocity getShootingSpeed() {
+    return regression.getAsBoolean()
+      ? getRegressedSpeed()
+      : Constants.Shooter.kSpeed.get();
+  }
+
+  /**
+   * Velocity the regression gives for the current distance to the target.
+   *
+   * @return Regressed velocity.
+   */
+  public AngularVelocity getRegressedSpeed() {
+    return Constants.regress(distance.get());
   }
 
   /**

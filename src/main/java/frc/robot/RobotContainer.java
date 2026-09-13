@@ -66,7 +66,11 @@ public class RobotContainer {
                 Joysticks.operator.x());
         shooter = new Shooter(
                 Joysticks.operator.rightTrigger()
-                  .or(Joysticks.driver.rightTrigger()).or(Joysticks.operator.rightBumper()));
+                  .or(Joysticks.driver.rightTrigger()).or(Joysticks.operator.rightBumper()),
+                // Held, the button that aims at the hub also takes the
+                // shooter's velocity off the range it is aiming from.
+                Joysticks.operator.x(),
+                drive::getHubDistance);
         vision = new Vision(
                 drive::getPose, drive::getRotation,
                 drive::addVisionMeasurement);
@@ -200,9 +204,9 @@ public class RobotContainer {
 				() -> -Constants.Joysticks.driver.getLeftX(),
 				() ->  Constants.Joysticks.driver.getRightX()));
 
-		Constants.Joysticks.operator
-				.x()
-				.whileTrue(pointToAngle(() -> drive.calculateHubRotation()));
+        Constants.Joysticks.operator
+                        .x()
+                        .whileTrue(pointToAngle(() -> drive.calculateHubRotation()));
 
         // Zero pose heading.
         Constants.Joysticks.driver

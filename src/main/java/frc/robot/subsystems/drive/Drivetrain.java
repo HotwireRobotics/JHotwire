@@ -1,6 +1,7 @@
 package frc.robot.subsystems.drive;
 
 import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.Radians;
 
 import java.util.function.Supplier;
@@ -10,6 +11,7 @@ import org.littletonrobotics.junction.Logger;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -33,11 +35,16 @@ public class Drivetrain extends Drive {
     super();
 
     // Triggers.
-    trigger
-      .whileTrue(firingOrientation());
+    // trigger
+    //   .whileTrue(firingOrientation());
   }
 
-  
+  /** Distance from the robot to the hub. */
+  public Distance getHubDistance() {
+    return Meters.of(
+        getPose().getTranslation().getDistance(Constants.Poses.hub.getPose().getTranslation()));
+  }
+
   /** Returns the Rotation2d the robot needs to face the hub. */
   public Rotation2d calculateHubRotation() {
     // Get poses.
@@ -52,7 +59,7 @@ public class Drivetrain extends Drive {
     Rotation2d rotation = new Rotation2d(
         Radians.of(Math.IEEEremainder(
             Math.atan2(dy, dx), 
-            Constants.Mathematics.TAU))).rotateBy(Rotation2d.k180deg);
+            Constants.Mathematics.TAU)));
 
     // Log the pointer
     Pose2d pointer = new Pose2d(robotPose.getX(), robotPose.getY(), rotation);
