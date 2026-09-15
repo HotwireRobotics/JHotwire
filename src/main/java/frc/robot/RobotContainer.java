@@ -8,6 +8,7 @@ import com.pathplanner.lib.commands.PathPlannerAuto;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -22,9 +23,7 @@ import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.Joysticks;
 import frc.robot.constants.Constants.Mode;
 import frc.robot.hotwire.Voice;
-import frc.robot.subsystems.drive.Drivetrain;
-import frc.robot.subsystems.drive.Drivetrain.Side;
-import frc.robot.subsystems.drive.Drivetrain.Zone;
+import frc.robot.applicable.ctre.Drive;
 import frc.robot.subsystems.hopper.Hopper;
 import frc.robot.subsystems.actuator.Actuator;
 import frc.robot.subsystems.intake.Intake;
@@ -40,7 +39,7 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 public class RobotContainer {
 
     // Declare subsystems.
-    public final Drivetrain drive;
+    public final Drive drive;
     public final Vision vision;
     public final Intake intake;
     public final Hopper hopper;
@@ -62,15 +61,14 @@ public class RobotContainer {
 
     public RobotContainer() {
         // Initialize subsystems.
-        drive = new Drivetrain(
-                Joysticks.operator.x());
+        drive = new Drive(Constants.mode);
         shooter = new Shooter(
                 Joysticks.operator.rightTrigger()
                   .or(Joysticks.driver.rightTrigger()).or(Joysticks.operator.rightBumper()),
                 // Held, the button that aims at the hub also takes the
                 // shooter's velocity off the range it is aiming from.
-                Joysticks.operator.x(),
-                drive::getHubDistance);
+                Joysticks.operator.x().or(Joysticks.driver.x()),
+                this::getHubDistance);
         vision = new Vision(
                 drive::getPose, drive::getRotation,
                 drive::addVisionMeasurement);
@@ -180,41 +178,102 @@ public class RobotContainer {
         autoChooser.addOption("CS-Bineutral", new PathPlannerAuto("CS-Bineutral"));
     }
 
-    
-	/**
-	 * Orient the robot to face a supplied angle.
-	 *
-	 * @param rotation
-	 */
-	private Command pointToAngle(Supplier<Rotation2d> rotation) {
-		return DriveCommands.joystickDriveAtAngle(
-			drive,
-			() -> -Constants.Joysticks.driver.getLeftY(),
-			() -> -Constants.Joysticks.driver.getLeftX(),
-			rotation
-		);
-	}
+    /** Distance from the robot to the hub. */
+    private Distance getHubDistance() {
+        return Meters.of(drive.getPose().getTranslation()
+                .getDistance(Constants.Poses.hub.getPose().getTranslation()));
+    }
+
+    /**
+     * Rotation the chassis is turned by, on top of the bearing to the hub, to
+     * put the shooter on target. k180deg aims the back of the chassis, which is
+     * what Hotwire does; set it to kZero if this robot shoots forward.
+     */
+    private static final Rotation2d kShooterOffset = Rotation2d.kZero;
+
+    /** Returns the Rotation2d the robot needs to face the hub. */
+    private Rotation2d calculateHubRotation() {
+        // Get poses.
+        Pose2d robotPose = drive.getPose();
+        Pose2d hubPose = Constants.Poses.hub.getPose();
+
+        // Pose differences.
+        double dx = hubPose.getX() - robotPose.getX();
+        double dy = hubPose.getY() - robotPose.getY();
+
+        // Bearing from the robot to the hub, then the shooter's own offset.
+        Rotation2d bearing = new Rotation2d(
+                Radians.of(Math.IEEEremainder(
+                        Math.atan2(dy, dx),
+                        Constants.Mathematics.TAU)));
+        Rotation2d rotation = bearing.rotateBy(kShooterOffset);
+
+        // Log the pointer.
+        Pose2d pointer = new Pose2d(robotPose.getX(), robotPose.getY(), rotation);
+        Logger.recordOutput("Hub Pointer", pointer);
+
+        // Every input the target is built from, so a heading that comes out
+        // backwards can be traced to the bearing, the hub pose, or the alliance
+        // that mirrored it, rather than to the controller chasing it.
+        Logger.recordOutput("Align/Alliance", Constants.getAlliance());
+        Logger.recordOutput("Align/Hub Pose", hubPose);
+        Logger.recordOutput("Align/Bearing", bearing.getDegrees());
+        Logger.recordOutput("Align/Target", rotation.getDegrees());
+        Logger.recordOutput("Align/Measured", drive.getRotation().getDegrees());
+        Logger.recordOutput("Align/Error", rotation.minus(drive.getRotation()).getDegrees());
+
+        // Update drive target.
+        drive.setRotationTarget(rotation);
+
+        return drive.getRotationTarget();
+    }
+
+    /**
+     * Orient the robot to face a supplied angle.
+     *
+     * @param rotation
+     */
+    private Command pointToAngle(Supplier<Rotation2d> rotation) {
+        return DriveCommands.joystickDriveAtAngle(
+                drive,
+                () -> -Constants.Joysticks.driver.getLeftY(),
+                () -> -Constants.Joysticks.driver.getLeftX(),
+                rotation)
+                // Close the heading loop on the module-derived yaw for the
+                // duration of the alignment. That is what the drivetrain runs on
+                // with no gyro connected, and it is the configuration alignment
+                // was tuned against. It starts from the gyro's heading and
+                // extrapolates from there; the Pigeon takes the estimate back on
+                // release, stepping it by whatever the modules drifted.
+                .beforeStarting(() -> drive.setHeadingSource(Drive.HeadingSource.KINEMATIC))
+                .finallyDo(() -> drive.setHeadingSource(Drive.HeadingSource.GYRO));
+    }
+
+    /** Orient robot to face the hub. */
+    private Command firingOrientation() {
+        return pointToAngle(this::calculateHubRotation);
+    }
 
     private void configureButtonBindings() {
         // Third person drive command.
         drive.setDefaultCommand(
-			DriveCommands.joystickDrive(
-				drive,
-				() -> -Constants.Joysticks.driver.getLeftY(),
-				() -> -Constants.Joysticks.driver.getLeftX(),
-				() ->  Constants.Joysticks.driver.getRightX()));
+                DriveCommands.joystickDrive(
+                        drive,
+                        () -> -Constants.Joysticks.driver.getLeftY(),
+                        () -> -Constants.Joysticks.driver.getLeftX(),
+                        () -> -Constants.Joysticks.driver.getRightX()));
 
-        Constants.Joysticks.operator
-                        .x()
-                        .whileTrue(pointToAngle(() -> drive.calculateHubRotation()));
+        // Aim at the hub while held.
+        Constants.Joysticks.driver
+                .x()
+                .whileTrue(firingOrientation());
 
-        // Zero pose heading.
+        // Zero the heading, the gyro's and the pose estimate's together. This
+        // is the only thing that moves the gyro's offset; everything else that
+        // resets a pose leaves the gyro where it is.
         Constants.Joysticks.driver
                 .a()
-                .onTrue(Commands.runOnce(
-                        () -> drive.setPose(new Pose2d(drive.getPose()
-                                .getTranslation(), Rotation2d.kZero)),
-                        drive)
+                .onTrue(Commands.runOnce(drive::rezero, drive)
                         .ignoringDisable(true));
     }
 

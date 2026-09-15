@@ -487,9 +487,9 @@ public final class Constants {
 
   // Derived from relationship between distance (m) and rotation (RPM).
   public static final Tunable.Scalar base =
-      new Tunable.Scalar("Shooter/Regression/Base", 1000.92838);
+      new Tunable.Scalar("Shooter/Regression/Base", 2500/140);
   public static final Tunable.Scalar exponential =
-      new Tunable.Scalar("Shooter/Regression/Exponential", 1.00529);
+      new Tunable.Scalar("Shooter/Regression/Exponential", 1);
 
   /**
    * Calculate shooter velocity from distance using an exponential regression.
@@ -499,7 +499,7 @@ public final class Constants {
    */
   public static AngularVelocity regress(Distance distance) {
     Logger.recordOutput("Shooter/Distance", distance.in(Inches));
-    return RPM.of(base.value() * Math.pow(exponential.value(), distance.in(Inches)));
+    return RPM.of(base.value() * distance.in(Inches));
   }
 
   public static enum Mode {

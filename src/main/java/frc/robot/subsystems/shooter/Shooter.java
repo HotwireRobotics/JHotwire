@@ -146,9 +146,9 @@ public class Shooter extends SubsystemBase {
     // Triggers. One command either way: the regression modifier moves the
     // velocity the command reads, so it can be taken and released mid-shot
     // without the shooter stopping.
-    // trigger
-    //   .whileTrue(runVelocity(this::getShootingSpeed))
-    //   .onFalse(runHalt());
+    trigger
+      .whileTrue(runVelocity(this::getShootingSpeed))
+      .onFalse(runHalt());
   }
 
   @Override
