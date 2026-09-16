@@ -50,7 +50,7 @@ public final class Constants {
     public static final Tunable<Time> kChargeUpTime =
         new Tunable<>("Shooter/ChargeUpTime", 0.1, Seconds::of);
     public static final Tunable<Time> kFiringTime =
-        new Tunable<>("Shooter/FiringTime", 7, Seconds::of);
+        new Tunable<>("Shooter/FiringTime", 2.5, Seconds::of);
     public static final Tunable<Time> kUntilSecondMagnitude =
         new Tunable<>("Shooter/UntilSecondMagnitude", 0.75, Seconds::of);
     public static final Tunable<Time> kUntilThirdMagnitude =
@@ -487,7 +487,7 @@ public final class Constants {
 
   // Derived from relationship between distance (m) and rotation (RPM).
   public static final Tunable.Scalar base =
-      new Tunable.Scalar("Shooter/Regression/Base", 2500/140);
+      new Tunable.Scalar("Shooter/Regression/Base", 21.2);
   public static final Tunable.Scalar exponential =
       new Tunable.Scalar("Shooter/Regression/Exponential", 1);
 

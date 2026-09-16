@@ -204,10 +204,23 @@ public class Shooter extends SubsystemBase {
 
   
   /**
-   * Run intake rollers.
+   * Run the shooter, at whichever velocity the modifier selects.
    */
   public Command run() {
     return runVelocity(this::getShootingSpeed);
+  }
+
+  /**
+   * Run the shooter on the regression, whatever the modifier is doing.
+   *
+   * <p>Autonomous shoots with this: no one is holding the modifier, and the
+   * shot is taken from wherever the path left the robot, so the velocity has
+   * to come from the distance rather than from the one fixed speed. The
+   * distance is read every cycle the command runs, so a shot taken while the
+   * robot is still settling is still aimed at where it ends up.
+   */
+  public Command runRegressed() {
+    return runVelocity(this::getRegressedSpeed);
   }
 
   /**

@@ -17,8 +17,17 @@ Helix answers aloud as the command goes out, and refuses out loud what the robot
 cannot act on -- a command spoken to a disabled robot, or to none at all. Every
 answer is drawn from a pool, so the same command twice does not get the same
 line back. He also answers being spoken to: "Helix, how are you", "Helix,
-status", "Helix, what can you do". Those dispatch nothing and are answered with
+status", "Helix, what is the battery", "Helix, which auto is selected". Those
+dispatch nothing, and the ones that ask nothing of the robot are answered with
 no robot present.
+
+Tunable constants are set by voice: "Helix, tune shooter speed to two thousand
+five hundred". A value is said either way round -- written out to the thousands
+("thirty four point two"), or a digit at a time ("three four point two"), which
+is the form that can say any number at all. A sign leads it and the part after
+"point" is digits. The name has to be one the robot is publishing under
+frc.robot.hotwire.Tunable's table, and Helix says the value back before
+anything runs on it.
 
 The reply is synthesized on its own thread, so the microphone keeps hearing
 while Helix talks; pass --half-duplex to deafen it for the length of a reply.
@@ -46,7 +55,7 @@ import threading
 import time
 
 import sounddevice as sd
-from ntcore import NetworkTableInstance
+from ntcore import MultiSubscriber, NetworkTableInstance
 from vosk import KaldiRecognizer, Model, SetLogLevel
 
 # Speech is optional: without it Helix still hears and dispatches, silently.
@@ -70,6 +79,14 @@ RELOOK = 5.0
 # enabled, which is what decides whether a command can run at all.
 CONTROL = "/FMSInfo/FMSControlData"
 ENABLED = 1
+
+# Entries Helix reads or writes: the robot's battery, the auto chooser's
+# selection, and the table frc.robot.hotwire.Tunable publishes every tunable
+# constant under. A tunable is a plain NT number the robot reads back every
+# cycle, so setting one from here is the same thing a dashboard slider does.
+BATTERY = "/AdvantageKit/SystemStats/BatteryVoltage"
+AUTO = "/SmartDashboard/Auto Choices/"
+TUNING = "/SmartDashboard/Tuning/"
 
 # Wake word every command needs, so stray conversation cannot drive the robot.
 WAKE = "helix"
@@ -105,7 +122,22 @@ TEENS = {
     "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
     "nineteen": 19,
 }
-TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60}
+TENS = {
+    "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
+    "seventy": 70, "eighty": 80, "ninety": 90,
+}
+
+# Scales that multiply what was counted before them, so a tuning value can be
+# said the way it is written down. Each needs a count in front of it: a bare
+# "thousand" is not a number, which is what lets a value that swallowed its
+# separator be told from one that did not. Durations do not reach them; a
+# spoken run is still capped at a minute.
+SCALES = {"hundred", "thousand"}
+
+# Every counting word, and the order they may be said in: within one scale each
+# is smaller than the one before it, as "thirty four" is and "four thirty" is
+# not. That ordering is what tells a real number from a misheard pair.
+COUNTS = {"zero": 0, **UNITS, **TEENS, **TENS}
 
 # Verbs the robot honors while disabled, mirroring the bindings marked
 # ignoringDisable in RobotContainer.configureVoiceBindings(). Anything else
@@ -132,16 +164,71 @@ TALK = {
     "thanks": "thanks",
     "who are you": "who",
     "what can you do": "help",
+    "what is the battery": "battery",
+    "how is the battery": "battery",
+    "which auto is selected": "auto",
+    "what auto is selected": "auto",
+    "which auto selected": "auto"
 }
 
-# Everything Helix listens for, longest first so "extend intake" is read as
-# "extend" rather than as the "intake" verb.
-PHRASES = {**VERBS, **TALK}
-SPOKEN_ONLY = set(TALK.values())
+# Values that can be tuned by voice, as the spoken name, the entry under the
+# tuning table, and the unit the robot holds it in. Mirrors the Tunable
+# declarations in Constants; a name the robot is not publishing is refused
+# rather than written, so a stale entry here cannot invent one.
+TUNABLES = {
+    "shooter speed": ("Shooter/Speed", "R P M"),
+    "shooter velocity tolerance": ("Shooter/VelocityTolerance", "R P M"),
+    "shooter firing time": ("Shooter/FiringTime", "seconds"),
+    "shooter charge up time": ("Shooter/ChargeUpTime", "seconds"),
+    "shooter debounce": ("Shooter/Debounce", "seconds"),
+    "shooter second magnitude": ("Shooter/UntilSecondMagnitude", "seconds"),
+    "shooter third magnitude": ("Shooter/UntilThirdMagnitude", "seconds"),
+    "shooter alignment error": ("Shooter/AlignmentError", "degrees"),
+    "shooter wheel radius": ("Shooter/WheelRadius", "inches"),
+    "shooter divisor": ("Shooter/Divisor", ""),
+    "shooter regression base": ("Shooter/Regression/Base", ""),
+    "shooter regression exponential": ("Shooter/Regression/Exponential", ""),
+    "intake speed": ("Intake/Speed", "R P M"),
+    "intake oscillation frequency": ("Intake/OscillationFrequency", "hertz"),
+    "hopper speed": ("Hopper/Speed", "R P M"),
+    "actuator travel": ("Actuator/Travel", "feet"),
+    "actuator angle": ("Actuator/Angle", "degrees"),
+    "actuator retracted": ("Actuator/Retracted", "rotations"),
+    "actuator extended": ("Actuator/Extended", "rotations"),
+    "actuator tolerance": ("Actuator/Tolerance", "rotations"),
+    "lerp": ("Lerp", ""),
+}
+
+# Digits, spoken one at a time: the form that can say any number at all, and
+# the one a value is read as first. "two five zero zero" is 2500, and "negative
+# zero point zero four" is -0.04. A value whose words are not all digits is
+# read as a written-out number instead, which is what count() is for.
+DIGITS = {
+    "zero": "0", "oh": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+    "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9",
+}
+
+# Word separating a tuning value from its name. "two" is here because the two
+# are homophones and the recognizer has to pick one of them.
+SEPARATORS = {"to", "two"}
+
+# Answer for a tunable Helix knows, said with a number it could not read.
+HINT = "digits"
 
 # Words allowed inside a phrase that carry nothing, dropped before matching, so
 # "helix please run the intake" is the same command as "helix run intake".
 FILLER = {"please", "the", "doing", "today", "now"}
+
+
+def spoken(phrase):
+    """A phrase as matching sees it, with the filler words taken out."""
+    return " ".join(word for word in phrase.split() if word not in FILLER)
+
+
+# Everything Helix listens for, keyed as it will be matched. Longest first, so
+# "extend intake" is read as "extend" rather than as the "intake" verb.
+PHRASES = {spoken(phrase): verb for phrase, verb in {**VERBS, **TALK}.items()}
+SPOKEN_ONLY = set(TALK.values()) | {HINT}
 
 
 class Bag:
@@ -152,7 +239,9 @@ class Bag:
     """
 
     def __init__(self, lines):
-        self.lines = tuple(lines)
+        # A pool of one is easy to write as a bare string; take it as a line
+        # rather than as a bag of letters.
+        self.lines = (lines,) if isinstance(lines, str) else tuple(lines)
         self.left = []
         self.last = None
 
@@ -212,7 +301,10 @@ LINES = {key: Bag(pool) for key, pool in {
     "thanks": ("My pleasure.", "Any time.", "Of course."),
     "who": ("I am this robot's voice, and its ears.",
             "The voice of this machine, at your service."),
-    "help": ("Do whatever."),
+    HINT: ("I could not read that number.",
+           "Say that value again?",
+           "The number did not come through."),
+    "help": ("Do whatever.",),
 }.items()}
 
 # Helix must not answer itself. The microphone stays live while a reply plays,
@@ -228,7 +320,14 @@ assert not ({WAKE} | BARE).intersection(
 # Everything the recognizer is allowed to return. "[unk]" lets it reject speech
 # that is not a command rather than forcing a match onto the nearest phrase.
 GRAMMAR = json.dumps(
-    sorted({word for phrase in PHRASES for word in phrase.split()} | {WAKE} | FILLER)
+    sorted(
+        {word for phrase in (*VERBS, *TALK, *TUNABLES) for word in phrase.split()}
+        | {WAKE, "tune", "point", "negative", "minus"}
+        | SCALES
+        | set(DIGITS)
+        | SEPARATORS
+        | FILLER
+    )
     + sorted({*UNITS, *TEENS, *TENS})
     + ["seconds", "second", "[unk]"]
 )
@@ -312,29 +411,199 @@ def reply(verb, seconds):
     return f"{line}."
 
 
-def answer(verb, instance, state):
+def figure(value):
+    """A number as Helix says it: every digit it holds, and no more.
+
+    Shortest round-trip, so the value read back is the value written -- a
+    confirmation that rounded off a digit would be worse than none at all.
+    """
+    text = repr(float(value))
+    if "e" in text:
+        text = f"{value:.20f}".rstrip("0").rstrip(".")
+    return text[:-2] if text.endswith(".0") else text
+
+
+def answer(verb, robot):
     """Answer a phrase that dispatches nothing.
 
-    A question about the robot is reported rather than drawn from a pool: it is
-    the one thing said here that has to be true at the moment it is said.
+    A question about the robot is reported rather than drawn from a pool: these
+    are the lines that have to be true at the moment they are said.
     """
-    if verb != "status":
-        return LINES[verb].draw()
-    if not instance.isConnected():
-        return "I have no link to the robot."
-    if not running(state):
-        return "The link is good. The robot is disabled and waiting."
-    return "The link is good and the robot is enabled."
+    if verb == "status":
+        if not robot.connected():
+            return "I have no link to the robot."
+        if not robot.enabled():
+            return "The link is good. The robot is disabled and waiting."
+        return "The link is good and the robot is enabled."
+
+    if verb == "battery":
+        if not robot.connected():
+            return "I have no link to the robot."
+        volts = robot.volts()
+        if volts is None:
+            return "The robot is not reporting a battery voltage."
+        return f"The battery is at {figure(round(volts, 1))} volts."
+
+    if verb == "auto":
+        if not robot.connected():
+            return "I have no link to the robot."
+        chosen = robot.auto()
+        if not chosen:
+            return "No auto is selected."
+        return f"The selected auto is {chosen
+                                       .replace("A-", '')
+                                       .replace('-', ', ')}."
+
+    return LINES[verb].draw()
 
 
-def running(state):
-    """True unless the robot is reporting itself disabled.
+class Robot:
+    """The robot as this program can see it: the link, and what it reads there."""
 
-    An unpublished control word means the robot is not saying either way, which
-    is no reason to refuse it; the command is published and the robot decides.
+    def __init__(self, instance):
+        self.instance = instance
+        self.state = instance.getTopic(CONTROL).genericSubscribe()
+        self.battery = instance.getDoubleTopic(BATTERY).subscribe(0.0)
+        self.chosen = instance.getStringTopic(AUTO + "active").subscribe("")
+        self.fallback = instance.getStringTopic(AUTO + "default").subscribe("")
+        self.entries = {}
+
+        # Learn what the robot publishes under the tuning table. A client hears
+        # about the topics it subscribes to and no others, so without this the
+        # whole table would look absent and every value would be refused.
+        self.tuning = MultiSubscriber(instance, [TUNING])
+
+    def connected(self):
+        """True while there is a server answering."""
+        return self.instance.isConnected()
+
+    def enabled(self):
+        """True unless the robot is reporting itself disabled.
+
+        An unpublished control word means the robot is not saying either way,
+        which is no reason to refuse a command; it is published and the robot
+        decides.
+        """
+        word = self.state.get()
+        return not word.isValid() or bool(int(word.value()) & ENABLED)
+
+    def volts(self):
+        """Battery voltage, or None where nothing has reported one."""
+        return self.battery.get() if self.battery.exists() else None
+
+    def auto(self):
+        """The auto the chooser is on, falling back to its default, or ""."""
+        return self.chosen.get() or self.fallback.get()
+
+    def tune(self, key, value):
+        """Write a tuning entry, and answer with the value it held before.
+
+        None means the robot is not publishing that entry, which is the only
+        way to tell a name this program knows from one the robot has.
+        """
+        entry = self.entries.get(key)
+        if entry is None:
+            # Asked before publishing anything: claiming the topic would make
+            # it exist whether the robot had it or not.
+            if not self.instance.getTopic(TUNING + key).exists():
+                return None
+            entry = self.entries[key] = (
+                self.instance.getDoubleTopic(TUNING + key).getEntry(0.0))
+
+        was = entry.get()
+        entry.set(value)
+        self.instance.flush()
+        return was
+
+
+def figures(words):
+    """Read digits said one at a time into a decimal string, or None.
+
+    Every finite decimal is sayable this way, and every value a tunable can
+    hold is a finite decimal, so nothing that can be set is out of reach --
+    only long. A sign leads, "point" divides, and anything else is a misread.
     """
-    word = state.get()
-    return not word.isValid() or bool(int(word.value()) & ENABLED)
+    written = ""
+    for word in words:
+        if word == "point" and "." not in written:
+            written += "."
+        elif word in DIGITS:
+            written += DIGITS[word]
+        else:
+            return None
+
+    return written or None
+
+
+def count(words):
+    """Read a written-out whole number, to the thousands, or None.
+
+    Each word in a scale has to be smaller than the one before it, which is how
+    English says a number and is not how a misread says two of them: "thirty
+    four" is 34, and "twenty thirty" is nothing at all.
+    """
+    total = 0
+    scale = 0
+    last = None
+    read = False
+
+    for word in words:
+        if word in COUNTS:
+            value = COUNTS[word]
+            if last is not None and value >= last:
+                return None
+            scale += value
+            last = value
+        elif word == "hundred" and scale:
+            scale *= 100
+            last = None
+        elif word == "thousand" and scale:
+            total += scale * 1000
+            scale = 0
+            last = None
+        else:
+            return None
+        read = True
+
+    return total + scale if read else None
+
+
+def decimal(words):
+    """Read a spoken number, or None.
+
+    Two ways of saying one, because both are natural and neither is ambiguous:
+    digits one at a time, which can say any number at all, or the number as it
+    is written out, which is easier for the ones that have a name. The part
+    after "point" is always digits, as it is said.
+    """
+    sign = 1.0
+    if words and words[0] in ("negative", "minus"):
+        sign, words = -1.0, words[1:]
+    if not words:
+        return None
+
+    # Digits first: whenever every word is one, that is what was meant.
+    written = figures(words)
+    if written is None:
+        whole, _, fraction = [list(part) for part in partition(words, "point")]
+        counted = count(whole) if whole else 0
+        after = figures(fraction) if fraction else ""
+        if counted is None or after is None or "." in after:
+            return None
+        written = f"{counted}.{after}" if after else str(counted)
+
+    try:
+        return sign * float(written)
+    except ValueError:
+        return None
+
+
+def partition(words, mark):
+    """Split a phrase around the first mark, which may not be there at all."""
+    if mark not in words:
+        return words, [], []
+    at = words.index(mark)
+    return words[:at], [mark], words[at + 1:]
 
 
 def roborio(team):
@@ -378,7 +647,11 @@ def number(words):
 
 
 def parse(text):
-    """Read a transcript into a (verb, seconds) pair, or None if unrecognized."""
+    """Read a transcript into a (verb, seconds, setting) triple, or None.
+
+    Only "tune" carries a setting, as the (name, key, value, unit) it is to
+    write. Everything else leaves it empty.
+    """
     words = [word for word in text.split() if word not in FILLER]
 
     # Consume the wake word. Only the bare verbs may go without it.
@@ -386,16 +659,53 @@ def parse(text):
     if woken:
         words = words[1:]
 
+    # Tuning, which is a name and a number rather than a fixed phrase. A name
+    # Helix knows, said with a value it could not read, is worth answering
+    # rather than dropping as noise.
+    if woken and words[:1] == ["tune"]:
+        setting = tuning(words[1:])
+        if setting is None:
+            return None
+        if setting == HINT:
+            return HINT, None, None
+        return "tune", None, setting
+
     # Match the longest phrase the remainder starts with.
     for phrase in sorted(PHRASES, key=lambda p: -len(p.split())):
-        spoken = phrase.split()
-        if words[: len(spoken)] != spoken:
+        said = phrase.split()
+        if words[: len(said)] != said:
             continue
 
         verb = PHRASES[phrase]
         if not woken and verb not in BARE:
             return None
-        return verb, number(words[len(spoken):])
+        return verb, number(words[len(said):]), None
+
+    return None
+
+
+def tuning(words):
+    """Read "<name> to <number>" into (name, key, value, unit), or None."""
+    for name in sorted(TUNABLES, key=lambda n: -len(n.split())):
+        said = name.split()
+        if words[: len(said)] != said:
+            continue
+
+        # The separator is spoken, and comes back as either homophone, so it is
+        # eaten either way. A value that only reads as a number with it left
+        # alone -- "two thousand five hundred", where the two ran together into
+        # one word -- is taken that way instead.
+        rest = words[len(said):]
+        value = None
+        if rest[:1] and rest[0] in SEPARATORS:
+            value = decimal(rest[1:])
+        if value is None:
+            value = decimal(rest)
+        if value is None:
+            return HINT
+
+        key, unit = TUNABLES[name]
+        return name, key, value, unit
 
     return None
 
@@ -427,7 +737,7 @@ def main():
     instance.setServer(target)
     instance.startClient4("voice")
     utterance = instance.getStringTopic(ENTRY).publish()
-    state = instance.getTopic(CONTROL).genericSubscribe()
+    robot = Robot(instance)
 
     speaker = Speaker(rate=args.speech_rate, voice=args.voice, mute=args.mute)
 
@@ -453,7 +763,7 @@ def main():
         A run the robot no longer has -- disabled or lost since it started --
         never reached its end, so nothing is said about it.
         """
-        if instance.isConnected() and running(state):
+        if robot.connected() and robot.enabled():
             speaker.say(LINES["done"].draw())
 
     print(f"listening for '{WAKE} ...'; publishing {ENTRY} to {target}")
@@ -500,21 +810,43 @@ def main():
                     speaker.say(LINES["unheard"].draw())
                 continue
 
-            verb, seconds = command
+            verb, seconds, setting = command
 
             # Talk, which asks nothing of the robot and so is answered whatever
             # state it is in, or whether there is one listening at all.
             if verb in SPOKEN_ONLY:
                 print(f"> {text}")
-                speaker.say(answer(verb, instance, state))
+                speaker.say(answer(verb, robot))
+                continue
+
+            # Tuning writes a number the robot reads back on its next cycle. It
+            # wants a link but not an enable: a robot on blocks is when tuning
+            # is usually done. Helix says the value back, so a digit heard
+            # wrongly is caught before anything is run on it.
+            if verb == "tune":
+                name, key, value, unit = setting
+                if not robot.connected():
+                    print(f"> {text}  ->  refused")
+                    speaker.say(LINES["offline"].draw(), urgent=True)
+                    continue
+
+                was = robot.tune(key, value)
+                if was is None:
+                    print(f"> {text}  ->  {key} not published")
+                    speaker.say(f"The robot has no {name}.", urgent=True)
+                    continue
+
+                print(f"> {text}  ->  {key} {figure(was)} to {value!r}")
+                speaker.say(f"{name.capitalize()} set to "
+                            f"{f'{figure(value)} {unit}'.strip()}.")
                 continue
 
             # Refuse what the robot cannot act on. Both of these would leave the
             # command unrun with nothing said about it.
             refusal = None
-            if not instance.isConnected():
+            if not robot.connected():
                 refusal = LINES["offline"].draw()
-            elif verb not in DISABLED_OK and not running(state):
+            elif verb not in DISABLED_OK and not robot.enabled():
                 refusal = LINES["disabled"].draw()
             if refusal:
                 print(f"> {text}  ->  refused")

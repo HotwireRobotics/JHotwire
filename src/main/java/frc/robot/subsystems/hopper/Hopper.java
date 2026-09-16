@@ -113,14 +113,14 @@ public class Hopper extends SubsystemBase {
   }
 
   /**
-   * Run intake rollers.
+   * Run the hopper and feeder, at the same speed the bumper runs them at.
    */
   public Command run() {
-    return runVelocity(Constants.Intake.kSpeed);
+    return runVelocity(Constants.Hopper.kSpeed);
   }
 
   /**
-   * Stop intake rollers.
+   * Stop the hopper and feeder.
    */
   public Command stop() {
     return runHalt();

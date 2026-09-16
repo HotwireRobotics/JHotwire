@@ -9,6 +9,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -31,6 +32,7 @@ import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.constants.Constants.Joysticks.*;
 
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.littletonrobotics.junction.Logger;
@@ -132,10 +134,17 @@ public class RobotContainer {
         NamedCommands.registerCommand("Start Shooting", shooter.run().withTimeout(0.1));
         NamedCommands.registerCommand("Stop Shooting", shooter.stop().withTimeout(0.1));
 
-        // Firing sequence: spin the shooter for the firing duration, then stop.
+        // The velocity comes off the regression because autonomous holds no
+        // modifier and shoots from wherever the path stopped, and the hopper
+        // waits on the shooter so the first ball is not fed into a wheel that
+        // is still coming up to speed.
         NamedCommands.registerCommand("Firing Sequence", Commands.sequence(
-                shooter.run().withTimeout(Constants.Shooter.kFiringTime.get()),
-                shooter.stop().withTimeout(0.1)));
+                Commands.parallel(
+                        shooter.runRegressed(), hopper.run())
+                        .raceWith(waitFor(Constants.Shooter.kFiringTime)),
+                Commands.parallel(
+                        shooter.stop(),
+                        hopper.stop()).withTimeout(0.1)));
 
         // Autonomous
         if (!Constants.mode.equals(Mode.COMPETITION)) {
@@ -307,6 +316,20 @@ public class RobotContainer {
                 hopper.stop(),
                 shooter.stop(),
                 Commands.runOnce(() -> drive.stop())).ignoringDisable(true));
+    }
+
+    /**
+     * A wait whose length is read when it runs rather than when it is built.
+     *
+     * <p>Auto markers are registered once at startup, so a duration read there
+     * is the one the robot booted with. Reading it at the marker is what lets a
+     * value tuned between runs reach the next one.
+     *
+     * @param duration Tunable the wait reads.
+     */
+    private static Command waitFor(Supplier<Time> duration) {
+        return Commands.defer(
+                () -> Commands.waitSeconds(duration.get().in(Seconds)), Set.of());
     }
 
     /**
