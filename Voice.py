@@ -14,9 +14,14 @@ dropped when the phrase carries no duration. The nonce lets the same phrase fire
 twice in a row.
 
 Helix answers aloud as the command goes out, and refuses out loud what the robot
-cannot act on -- a command spoken to a disabled robot, or to none at all. The
-reply is synthesized on its own thread, so the microphone keeps hearing while
-Helix talks; pass --half-duplex to deafen it for the length of a reply instead.
+cannot act on -- a command spoken to a disabled robot, or to none at all. Every
+answer is drawn from a pool, so the same command twice does not get the same
+line back. He also answers being spoken to: "Helix, how are you", "Helix,
+status", "Helix, what can you do". Those dispatch nothing and are answered with
+no robot present.
+
+The reply is synthesized on its own thread, so the microphone keeps hearing
+while Helix talks; pass --half-duplex to deafen it for the length of a reply.
 
 The robot is found rather than named: a simulator on this machine answers on the
 loopback address, and the roboRIO on the team's, so the same command works in
@@ -34,6 +39,7 @@ grammar this size.
 import argparse
 import json
 import queue
+import random
 import socket
 import sys
 import threading
@@ -111,40 +117,118 @@ DISABLED_OK = {"test", "stop"}
 # momentary, and Helix answers them without one.
 TIMED = {"intake", "hopper", "shooter"}
 
-# What Helix says as each command goes out. These are clauses; reply() closes
-# them with the duration, when one was spoken, and the address.
-ACKS = {
-    "intake": "The intake is running",
-    "hopper": "The hopper is running",
-    "shooter": "The shooter is spinning up",
-    "extend": "The intake is extended",
-    "retract": "The intake is retracted",
-    "test": "Diagnostic acknowledged",
-    "stop": "All motion halted",
+# Phrases Helix answers and does not dispatch. They move nothing, so they are
+# heard whatever state the robot is in, or whether there is one at all. The
+# wake word is still required: these are things said to Helix, not near it.
+TALK = {
+    "how are you": "how",
+    "are you there": "here",
+    "are you ready": "status",
+    "status": "status",
+    "report": "status",
+    "hello": "hello",
+    "good morning": "hello",
+    "thank you": "thanks",
+    "thanks": "thanks",
+    "who are you": "who",
+    "what can you do": "help",
 }
 
-# Everything else Helix says. SENT is the clause for a verb with no entry
-# above; DONE closes a run whose length was spoken, which is the only ending
-# this side can time.
-SENT = "Operation sent"
-DONE = "It is done sir."
-UNHEARD = "I did not catch that sir."
-DISABLED = "The robot is disabled, such command is not possible."
-OFFLINE = "There is no link to the robot sir. Such command is not possible."
+# Everything Helix listens for, longest first so "extend intake" is read as
+# "extend" rather than as the "intake" verb.
+PHRASES = {**VERBS, **TALK}
+SPOKEN_ONLY = set(TALK.values())
+
+# Words allowed inside a phrase that carry nothing, dropped before matching, so
+# "helix please run the intake" is the same command as "helix run intake".
+FILLER = {"please", "the", "doing", "today", "now"}
+
+
+class Bag:
+    """Draws lines from a pool, shuffled, and does not repeat one back to back.
+
+    A command given twice gets two different answers, and every line in a pool
+    is heard once before any of them comes round again.
+    """
+
+    def __init__(self, lines):
+        self.lines = tuple(lines)
+        self.left = []
+        self.last = None
+
+    def draw(self):
+        if not self.left:
+            self.left = list(self.lines)
+            random.shuffle(self.left)
+
+            # A refill must not open on the line the last pass closed with.
+            if len(self.left) > 1 and self.left[-1] == self.last:
+                self.left.insert(0, self.left.pop())
+
+        self.last = self.left.pop()
+        return self.last
+
+
+# What Helix says as a command goes out. Clauses, which reply() closes with the
+# duration when one was spoken.
+ACKS = {verb: Bag(pool) for verb, pool in {
+    "intake": ("The intake is running", "Intake engaged", "Running the intake",
+               "Intake underway"),
+    "hopper": ("The hopper is running", "Hopper engaged", "Running the hopper",
+               "Hopper underway"),
+    "shooter": ("The shooter is spinning up", "Spinning up the shooter",
+                "Shooter engaged", "Bringing the shooter to speed"),
+    "extend": ("The intake is extended", "Intake deployed", "Extending the intake",
+               "It is done"),
+    "retract": ("The intake is retracted", "Intake stowed", "Retracting the intake",
+                "It is done"),
+    "test": ("Diagnostic acknowledged", "Diagnostic flag toggled", "Signal received",
+             "Checking in"),
+    "stop": ("All motion halted", "Everything is held", "Halting everything",
+             "All operations cancelled"),
+}.items()}
+
+# The clause for a verb with no pool of its own.
+SENT = Bag(("Operation sent", "Command away", "On its way"))
+
+# Whole lines. "done" closes a run whose length was spoken, the only ending this
+# side can time; the refusals cover a command the robot could not have acted on.
+LINES = {key: Bag(pool) for key, pool in {
+    "done": ("It is done.", "That is complete.", "The run is finished.",
+             "Complete."),
+    "unheard": ("I did not catch that.", "Say again?", "That did not come through.",
+                "I missed that."),
+    "disabled": ("The robot is disabled, such command is not possible.",
+                 "The robot is disabled. I cannot do that.",
+                 "Not while the robot is disabled."),
+    "offline": ("There is no link to the robot, such command is not possible.",
+                "I have no link to the robot.",
+                "The robot is not answering."),
+    "how": ("All systems nominal.", "Running well, thank you.",
+            "No faults to report.", "In good order."),
+    "here": ("I am listening.", "Still here.", "Listening."),
+    "hello": ("Hello.", "Good to hear from you.", "At your service.",
+              "Standing by."),
+    "thanks": ("My pleasure.", "Any time.", "Of course."),
+    "who": ("I am this robot's voice, and its ears.",
+            "The voice of this machine, at your service."),
+    "help": ("Do whatever."),
+}.items()}
 
 # Helix must not answer itself. The microphone stays live while a reply plays,
 # and the bare verbs are the ones that dispatch with no wake word ahead of them,
-# so no reply may contain those words or the wake word.
+# so no line may contain those words or the wake word.
 assert not ({WAKE} | BARE).intersection(
-    word.strip(".,").lower()
-    for line in (*ACKS.values(), SENT, DONE, UNHEARD, DISABLED, OFFLINE)
+    word.strip(".,?").lower()
+    for bag in (*ACKS.values(), SENT, *LINES.values())
+    for line in bag.lines
     for word in line.split()
 )
 
 # Everything the recognizer is allowed to return. "[unk]" lets it reject speech
 # that is not a command rather than forcing a match onto the nearest phrase.
 GRAMMAR = json.dumps(
-    sorted({word for phrase in VERBS for word in phrase.split()} | {WAKE})
+    sorted({word for phrase in PHRASES for word in phrase.split()} | {WAKE} | FILLER)
     + sorted({*UNITS, *TEENS, *TENS})
     + ["seconds", "second", "[unk]"]
 )
@@ -222,10 +306,25 @@ class Speaker:
 
 def reply(verb, seconds):
     """Compose what Helix says back when a command goes out."""
-    line = ACKS.get(verb, SENT)
+    line = ACKS[verb].draw() if verb in ACKS else SENT.draw()
     if seconds and verb in TIMED:
-        return f"{line} for {seconds} seconds, sir."
-    return f"{line}, sir."
+        return f"{line} for {seconds} seconds."
+    return f"{line}."
+
+
+def answer(verb, instance, state):
+    """Answer a phrase that dispatches nothing.
+
+    A question about the robot is reported rather than drawn from a pool: it is
+    the one thing said here that has to be true at the moment it is said.
+    """
+    if verb != "status":
+        return LINES[verb].draw()
+    if not instance.isConnected():
+        return "I have no link to the robot."
+    if not running(state):
+        return "The link is good. The robot is disabled and waiting."
+    return "The link is good and the robot is enabled."
 
 
 def running(state):
@@ -280,7 +379,7 @@ def number(words):
 
 def parse(text):
     """Read a transcript into a (verb, seconds) pair, or None if unrecognized."""
-    words = text.split()
+    words = [word for word in text.split() if word not in FILLER]
 
     # Consume the wake word. Only the bare verbs may go without it.
     woken = bool(words) and words[0] == WAKE
@@ -288,12 +387,12 @@ def parse(text):
         words = words[1:]
 
     # Match the longest phrase the remainder starts with.
-    for phrase in sorted(VERBS, key=lambda p: -len(p.split())):
+    for phrase in sorted(PHRASES, key=lambda p: -len(p.split())):
         spoken = phrase.split()
         if words[: len(spoken)] != spoken:
             continue
 
-        verb = VERBS[phrase]
+        verb = PHRASES[phrase]
         if not woken and verb not in BARE:
             return None
         return verb, number(words[len(spoken):])
@@ -355,7 +454,7 @@ def main():
         never reached its end, so nothing is said about it.
         """
         if instance.isConnected() and running(state):
-            speaker.say(DONE)
+            speaker.say(LINES["done"].draw())
 
     print(f"listening for '{WAKE} ...'; publishing {ENTRY} to {target}")
     with sd.RawInputStream(samplerate=RATE, blocksize=8000, dtype="int16",
@@ -398,18 +497,25 @@ def main():
                 # Speech opening with the wake word was meant for Helix, so an
                 # answer is owed even though nothing in it parsed.
                 if text.split()[:1] == [WAKE]:
-                    speaker.say(UNHEARD)
+                    speaker.say(LINES["unheard"].draw())
                 continue
 
             verb, seconds = command
+
+            # Talk, which asks nothing of the robot and so is answered whatever
+            # state it is in, or whether there is one listening at all.
+            if verb in SPOKEN_ONLY:
+                print(f"> {text}")
+                speaker.say(answer(verb, instance, state))
+                continue
 
             # Refuse what the robot cannot act on. Both of these would leave the
             # command unrun with nothing said about it.
             refusal = None
             if not instance.isConnected():
-                refusal = OFFLINE
+                refusal = LINES["offline"].draw()
             elif verb not in DISABLED_OK and not running(state):
-                refusal = DISABLED
+                refusal = LINES["disabled"].draw()
             if refusal:
                 print(f"> {text}  ->  refused")
                 speaker.say(refusal, urgent=True)
