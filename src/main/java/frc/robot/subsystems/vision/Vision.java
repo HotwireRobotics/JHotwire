@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.ejml.equation.MatrixConstructor;
+import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
@@ -118,6 +119,21 @@ public class Vision extends SubsystemBase {
         return (estimation.count > 0);
     }
 
+    /**
+     * Post a camera's final pose estimate to NetworkTables. The estimate is published
+     * as a single-element array, or as an empty array when the camera has no reading.
+     *
+     * @param estimation
+     */
+    private void publish(Measurement estimation) {
+        Logger.recordOutput(
+            "Vision/" + estimation.source + "/Estimate",
+            isValidEstimate(estimation)
+                ? new Pose2d[] {estimation.pose}
+                : new Pose2d[] {}
+        );
+    }
+
     public void setEnabled(boolean value) {
         this.manager.set(value ? State.READING : State.STOPPED);
     }
@@ -132,6 +148,11 @@ public class Vision extends SubsystemBase {
 
         // Trash empty measurements.
         if (measurements == null) return;
+
+        // Post the final estimate of every camera to NetworkTables.
+        measurements.stream()
+            .filter(m -> m != null)
+            .forEach(this::publish);
 
         // Supply pose estimates to the drivetrain.
         measurements.stream()

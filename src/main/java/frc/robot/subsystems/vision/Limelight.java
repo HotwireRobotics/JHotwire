@@ -31,7 +31,7 @@ public class Limelight implements VisionIO {
           Meters.of(0.503656),
           new Rotation3d(
             Degrees.of(0), 
-            Degrees.of(0), 
+            Degrees.of(-2), 
             Degrees.of(90)
           ));
           
@@ -53,7 +53,7 @@ public class Limelight implements VisionIO {
           Meters.of(0.503656),
           new Rotation3d(
             Degrees.of(0), 
-            Degrees.of(0), 
+            Degrees.of(2), 
             Degrees.of(-90)
           ));
     }
@@ -177,16 +177,23 @@ public class Limelight implements VisionIO {
             ? LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(name)
             : LimelightHelpers.getBotPoseEstimate_wpiBlue(name);
 
-          // Validate and share measurement.
+          // Report an empty measurement when the camera has nothing to share, so
+          // the camera still identifies itself to the subsystem.
           if (estimation == null) {
-            return null;
-          } else {
-            // Initialize a measurement object.
-            Measurement measurement = new Measurement(estimation)
+            return new Measurement()
+              .withSource(name)
+              .withPose(Pose2d.kZero)
+              .withDistance(Meters.of(0))
+              .withTagCount(0)
               .withStandardDeviation(Configuration.standardDeviation);
-            measurement.pose = new Pose2d(measurement.pose.getTranslation(), rotation);
-            return measurement;
           }
+
+          // Initialize a measurement object.
+          Measurement measurement = new Measurement(estimation)
+            .withSource(name)
+            .withStandardDeviation(Configuration.standardDeviation);
+          measurement.pose = new Pose2d(measurement.pose.getTranslation(), rotation);
+          return measurement;
         }
 
         /** 

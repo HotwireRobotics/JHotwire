@@ -35,6 +35,8 @@ public interface VisionIO {
     public Matrix<N3, N1> devs;
     /** Raw estimation data. */
     public PoseEstimate est = new PoseEstimate();
+    /** Name of the camera that produced the measurement. */
+    public String source = "";
 
     public Measurement() {}
 
@@ -89,6 +91,16 @@ public interface VisionIO {
     public Measurement withTagCount(int count) {
       est.tagCount = count;
       this.count = count;
+      return this;
+    }
+
+    /**
+     * Supply measurement with the name of its source camera.
+     * 
+     * @param source
+     */
+    public Measurement withSource(String source) {
+      this.source = source;
       return this;
     }
 
