@@ -168,7 +168,8 @@ TALK = {
     "how is the battery": "battery",
     "which auto is selected": "auto",
     "what auto is selected": "auto",
-    "which auto selected": "auto"
+    "which auto selected": "auto",
+    "meow": "meow"
 }
 
 # Values that can be tuned by voice, as the spoken name, the entry under the
@@ -301,6 +302,7 @@ LINES = {key: Bag(pool) for key, pool in {
     "thanks": ("My pleasure.", "Any time.", "Of course."),
     "who": ("I am this robot's voice, and its ears.",
             "The voice of this machine, at your service."),
+    "meow": ("Mew.", "Meow.", "Mew mew."),
     HINT: ("I could not read that number.",
            "Say that value again?",
            "The number did not come through."),

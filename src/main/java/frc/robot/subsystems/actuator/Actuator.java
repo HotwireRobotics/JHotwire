@@ -1,6 +1,7 @@
 package frc.robot.subsystems.actuator;
 
 import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.Rotations;
@@ -28,6 +29,12 @@ import frc.robot.subsystems.motors.MotorIO.FollowerMode;
 import frc.robot.subsystems.motors.MotorIO.NeutralMode;
 import frc.robot.subsystems.actuator.Clypeus;
 
+import com.andymark.jni.AM_CAN_Mag_Switch;
+import com.andymark.jni.AM_CAN_Mag_Switch.AM_MagSwitchData;
+
+import edu.wpi.first.wpilibj.CAN;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 /**
  * <strong>Actuator Subsystem</strong>
  * <p>Deploys and retracts the intake by driving it linearly along a fixed
@@ -52,9 +59,14 @@ public class Actuator extends SubsystemBase {
 
   // Initialize device representatives.
   /** Right actuator motor; carries the CANcoder and leads. */
-  final Motor right;
+  final Motor leader;
   /** Left actuator motor; follows the right motor. */
   final Motor left;
+  /** CANCoders. */
+  final CANcoder rightCoder;
+  final CANcoder  leftCoder;
+  /** Hall-Effect sensor. */
+  final AM_CAN_Mag_Switch sensor;
 
   // Test toggle for commanding the actuator in/out; defaults to retracted.
   private boolean toggle = false;
@@ -71,20 +83,24 @@ public class Actuator extends SubsystemBase {
     // Configure devices.
     Application configuration = new Application(
       Direction.FORWARD, NeutralMode.BRAKE, Amps.of(40));
-    Feedforward feedforward = new Feedforward(0.1, 0, 0);
-    right = new Motor(this, Constants.MotorIDs.ACTUATOR_RIGHT);
-    right.apply(
+    leader = new Motor(this, Constants.MotorIDs.ACTUATOR_RIGHT);
+    leader.apply(
       configuration);
-    right.apply(
+    leader.apply(
       new Feedforward(Constants.Actuator.kP, 0, 0));
     left = new Motor(this, Constants.MotorIDs.ACTUATOR_LEFT);
     left.apply(
       configuration);
     left.apply(
       new Feedforward(Constants.Actuator.kP, 0, 0));
+    rightCoder = new CANcoder(0); //TODO: Assign correct IDs for CANCoder and switch.
+     leftCoder = new CANcoder(1);
+    sensor = new AM_CAN_Mag_Switch(0);
+
+    sensor.resetReportPeriod(); // 100 ms
 
     // The left motor mirrors the leader.
-    left.follow(right, FollowerMode.INVERSE);
+    left.follow(leader, FollowerMode.INVERSE);
 
     // Triggers.
     trigger.onTrue(Commands.runOnce(this::toggle));
@@ -95,16 +111,24 @@ public class Actuator extends SubsystemBase {
     // Update subsystem inputs.
     io.updateInputs(inputs);
 
+    // Reset position on CANCoders if the magnetic sensor is triggered.
+    if (sensor.getData().magnetDetected && !toggle) {
+      rightCoder.setPosition(Degrees.of(0));
+       leftCoder.setPosition(Degrees.of(0));
+    }
+
     // Drive the leader (the follower tracks it) toward the active target.
     Angle target = toggle
       ? Constants.Actuator.kExtended.get()
       : Constants.Actuator.kRetracted.get();
-    right.putPosition(target);
+
+    
+    leader.putPosition(target);
     io.setTarget(target);
 
     // Log device and derived state.
-    Logs.log(right);
-    Logger.recordOutput("Actuator/Position", right.getPosition());
+    Logs.log(leader);
+    Logger.recordOutput("Actuator/Position", leader.getPosition());
     Logger.recordOutput("Actuator/Extension", getExtension());
   }
 
@@ -141,7 +165,7 @@ public class Actuator extends SubsystemBase {
   public double getExtension() {
     double range = Constants.Actuator.kExtended.get()
       .minus(Constants.Actuator.kRetracted.get()).in(Rotations);
-    Angle travelled = right.getPosition().minus(Constants.Actuator.kRetracted.get());
+    Angle travelled = leader.getPosition().minus(Constants.Actuator.kRetracted.get());
     return MathUtil.clamp(travelled.in(Rotations) / range, 0, 1);
   }
 
