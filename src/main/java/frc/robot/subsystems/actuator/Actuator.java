@@ -66,7 +66,8 @@ public class Actuator extends SubsystemBase {
   final CANcoder rightCoder;
   final CANcoder  leftCoder;
   /** Hall-Effect sensor. */
-  final AM_CAN_Mag_Switch sensor;
+  final AM_CAN_Mag_Switch rightSensor;
+  final AM_CAN_Mag_Switch  leftSensor;
 
   // Test toggle for commanding the actuator in/out; defaults to retracted.
   private boolean toggle = false;
@@ -87,17 +88,19 @@ public class Actuator extends SubsystemBase {
     leader.apply(
       configuration);
     leader.apply(
-      new Feedforward(Constants.Actuator.kP, 0, 0));
+      new Feedforward(Constants.Actuator.kP, Constants.Actuator.kI, 0));
     left = new Motor(this, Constants.MotorIDs.ACTUATOR_LEFT);
     left.apply(
       configuration);
     left.apply(
-      new Feedforward(Constants.Actuator.kP, 0, 0));
-    rightCoder = new CANcoder(0); //TODO: Assign correct IDs for CANCoder and switch.
-     leftCoder = new CANcoder(1);
-    sensor = new AM_CAN_Mag_Switch(0);
+      new Feedforward(Constants.Actuator.kP, Constants.Actuator.kI, 0));
+    rightCoder = new CANcoder(1); //TODO: Assign correct IDs for CANCoders.
+     leftCoder = new CANcoder(0);
+    rightSensor = new AM_CAN_Mag_Switch(0); //TODO: Assign correct IDs for switches.
+     leftSensor = new AM_CAN_Mag_Switch(0);
 
-    sensor.resetReportPeriod(); // 100 ms
+    rightSensor.resetReportPeriod(); // 100 ms
+     leftSensor.resetReportPeriod(); // 100 ms
 
     // The left motor mirrors the leader.
     left.follow(leader, FollowerMode.INVERSE);
@@ -111,17 +114,14 @@ public class Actuator extends SubsystemBase {
     // Update subsystem inputs.
     io.updateInputs(inputs);
 
-    // Reset position on CANCoders if the magnetic sensor is triggered.
-    if (sensor.getData().magnetDetected && !toggle) {
-      rightCoder.setPosition(Degrees.of(0));
-       leftCoder.setPosition(Degrees.of(0));
-    }
+    // Reset position on CANCoder if their respective magnetic sensor is triggered.
+    if (rightSensor.getData().magnetDetected && !toggle) rightCoder.setPosition(Degrees.of(0));
+    if ( leftSensor.getData().magnetDetected &&  !toggle) leftCoder.setPosition(Degrees.of(0));
 
     // Drive the leader (the follower tracks it) toward the active target.
     Angle target = toggle
       ? Constants.Actuator.kExtended.get()
       : Constants.Actuator.kRetracted.get();
-
     
     leader.putPosition(target);
     io.setTarget(target);

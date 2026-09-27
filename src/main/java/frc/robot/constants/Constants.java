@@ -116,7 +116,8 @@ public final class Constants {
 
     // Closed-loop proportional gain for the leader motor. Applied once, at
     // device configuration.
-    public static final double kP = 8.0;
+    public static final double kP = 4.0;
+    public static final double kI = 3.0;
   }
 
   public static class Control {
@@ -487,7 +488,7 @@ public final class Constants {
 
   // Derived from relationship between distance (m) and rotation (RPM).
   public static final Tunable.Scalar base =
-      new Tunable.Scalar("Shooter/Regression/Base", 21.2);
+      new Tunable.Scalar("Shooter/Regression/Base", 21);
   public static final Tunable.Scalar exponential =
       new Tunable.Scalar("Shooter/Regression/Exponential", 1);
 

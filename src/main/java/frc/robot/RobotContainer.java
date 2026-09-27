@@ -276,6 +276,9 @@ public class RobotContainer {
         Constants.Joysticks.driver
                 .x()
                 .whileTrue(firingOrientation());
+        Constants.Joysticks.operator
+                .x()
+                .whileTrue(firingOrientation());
 
         // Zero the heading, the gyro's and the pose estimate's together. This
         // is the only thing that moves the gyro's offset; everything else that
