@@ -16,12 +16,12 @@
     },
     {
       "anchor": {
-        "x": 2.5122967189728955,
-        "y": 5.309457917261056
+        "x": 2.6158059914407983,
+        "y": 5.063623395149786
       },
       "prevControl": {
-        "x": 1.4310756050149944,
-        "y": 5.240183149005521
+        "x": 1.5345848774828972,
+        "y": 4.994348626894252
       },
       "nextControl": null,
       "isLocked": false,
@@ -56,13 +56,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 149.1
+    "rotation": -27.758540601060023
   },
   "reversed": false,
-  "folder": "Cinderstorm",
+  "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": -135.0
+    "rotation": 47.35329686610825
   },
   "useDefaultConstraints": false
 }

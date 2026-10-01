@@ -41,9 +41,9 @@ public class GyroIOPigeon2 implements GyroIO {
    * the robot does not rotate about has no effect on yaw.
    */
   private static final double
-      kGyroScalarX = 0.0,
-      kGyroScalarY = -0.41515,
-      kGyroScalarZ = 0.0;
+      kGyroScalarX = -5.1,
+      kGyroScalarY = -0.41515+4.7999+5.1,
+      kGyroScalarZ = -5.1;
 
   public GyroIOPigeon2() {
     // Every group on the device is overwritten by a full configuration, mount

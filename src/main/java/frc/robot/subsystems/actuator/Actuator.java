@@ -8,6 +8,7 @@ import static edu.wpi.first.units.Units.Rotations;
 
 import org.littletonrobotics.junction.Logger;
 
+import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
 
 import edu.wpi.first.math.MathUtil;
@@ -96,6 +97,8 @@ public class Actuator extends SubsystemBase {
       new Feedforward(Constants.Actuator.kP, Constants.Actuator.kI, 0));
     rightCoder = new CANcoder(1); //TODO: Assign correct IDs for CANCoders.
      leftCoder = new CANcoder(0);
+    // rightCoder.getConfigurator().apply(new CANcoderConfiguration().MagnetSensor.withMagnetOffset(-0.181640625));
+    //  leftCoder.getConfigurator().apply(new CANcoderConfiguration().MagnetSensor.withMagnetOffset(0.371826171875));
     rightSensor = new AM_CAN_Mag_Switch(0); //TODO: Assign correct IDs for switches.
      leftSensor = new AM_CAN_Mag_Switch(0);
 
@@ -115,8 +118,8 @@ public class Actuator extends SubsystemBase {
     io.updateInputs(inputs);
 
     // Reset position on CANCoder if their respective magnetic sensor is triggered.
-    if (rightSensor.getData().magnetDetected && !toggle) rightCoder.setPosition(Degrees.of(0));
-    if ( leftSensor.getData().magnetDetected &&  !toggle) leftCoder.setPosition(Degrees.of(0));
+    // if (rightSensor.getData().magnetDetected && !toggle) rightCoder.setPosition(Degrees.of(0));
+    // if ( leftSensor.getData().magnetDetected &&  !toggle) leftCoder.setPosition(Degrees.of(0));
 
     // Drive the leader (the follower tracks it) toward the active target.
     Angle target = toggle
@@ -129,7 +132,7 @@ public class Actuator extends SubsystemBase {
     // Log device and derived state.
     Logs.log(leader);
     Logger.recordOutput("Actuator/Position", leader.getPosition());
-    Logger.recordOutput("Actuator/Extension", getExtension());
+    Logger.recordOutput("Actuator/Extension",      getExtension());
   }
 
   /**

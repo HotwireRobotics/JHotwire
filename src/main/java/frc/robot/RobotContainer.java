@@ -12,10 +12,12 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.applicable.ctre.DriveCommands;
@@ -60,6 +62,7 @@ public class RobotContainer {
     private final LoggedDashboardChooser<Command> autoChooser;
     private final LoggedDashboardChooser<Boolean> localization;
     private final LoggedDashboardChooser<Boolean> alignment;
+    private final LoggedDashboardChooser<Boolean> fixedAutoShot;
 
     public RobotContainer() {
         // Initialize subsystems.
@@ -78,7 +81,7 @@ public class RobotContainer {
                 Joysticks.operator.leftTrigger().or(Joysticks.driver.leftTrigger()));
         hopper = new Hopper(
                 Joysticks.operator.leftBumper().or(Joysticks.driver.leftBumper())
-                //   .or(new Trigger(() -> shooter.isReady()))
+                  .or(new Trigger(() -> shooter.isReady()))
         );
         actuator = new Actuator(Joysticks.operator.a());
         PDP = new PowerDistribution();
@@ -115,12 +118,23 @@ public class RobotContainer {
         localization.addOption("Disabled", false);
         localization.onChange(v -> vision.setEnabled(v));
 
+        // Autonomous shot velocity: off the regression, or always kAutoSpeed.
+        fixedAutoShot = new LoggedDashboardChooser<>("Dashboard/autoShot", new SendableChooser<Boolean>());
+        fixedAutoShot.addDefaultOption("Regressed", false);
+        fixedAutoShot.addOption("Fixed", true);
+
         // Declare drivetrain pathplanner events.
         final Command stopDrive = Commands.runOnce(() -> drive.stop());
         final Command lockDrive = Commands.runOnce(() -> drive.stopWithX());
 
-        NamedCommands.registerCommand("Start Intaking", intake.run().withTimeout(0.1));
-        NamedCommands.registerCommand("Stop Intaking", intake.stop().withTimeout(0.1));
+        // Start markers launch a detached run so the auto moves on while the
+        // rollers keep spinning (a timed run would release the motor when it
+        // ends). Stop markers cancel it; it also ends on its own with auto.
+        final Command intaking = intake.run().onlyWhile(DriverStation::isAutonomousEnabled);
+        NamedCommands.registerCommand("Start Intaking",
+                Commands.runOnce(() -> CommandScheduler.getInstance().schedule(intaking)));
+        NamedCommands.registerCommand("Stop Intaking",
+                Commands.runOnce(intaking::cancel).andThen(intake.stop()));
 
         // Actuator (intake deployment) auto markers.
         NamedCommands.registerCommand("Lower Intake", Commands.runOnce(actuator::extend ));
@@ -131,17 +145,33 @@ public class RobotContainer {
         NamedCommands.registerCommand("Occilate Intake", Commands.none());
 
         // Shooter auto markers (non-blocking, same reasoning as the intake).
-        NamedCommands.registerCommand("Start Shooting", shooter.run().withTimeout(0.1));
-        NamedCommands.registerCommand("Stop Shooting", shooter.stop().withTimeout(0.1));
+        final Command shooting = shooter.run().onlyWhile(DriverStation::isAutonomousEnabled);
+        NamedCommands.registerCommand("Start Shooting",
+                Commands.runOnce(() -> CommandScheduler.getInstance().schedule(shooting)));
+        NamedCommands.registerCommand("Stop Shooting",
+                Commands.runOnce(shooting::cancel).andThen(shooter.stop()));
 
-        // The velocity comes off the regression because autonomous holds no
-        // modifier and shoots from wherever the path stopped, and the hopper
-        // waits on the shooter so the first ball is not fed into a wheel that
-        // is still coming up to speed.
+        // The velocity comes off the regression by default because autonomous
+        // holds no modifier and shoots from wherever the path stopped; the
+        // dashboard can pin it to kAutoSpeed instead. The hopper waits
+        // kSpinUpTime on the shooter so the first ball is not fed into a wheel
+        // that is still coming up to speed, then feeds for the full
+        // kFiringTime. The intake retracts kRetractDelay after the hopper starts.
         NamedCommands.registerCommand("Firing Sequence", Commands.sequence(
                 Commands.parallel(
-                        shooter.runRegressed(), hopper.run())
-                        .raceWith(waitFor(Constants.Shooter.kFiringTime)),
+                        shooter.runAt(() -> fixedAutoShot.get()
+                                ? Constants.Shooter.kAutoSpeed.get()
+                                : shooter.getRegressedSpeed()),
+                        Commands.sequence(
+                                waitFor(Constants.Shooter.kSpinUpTime),
+                                Commands.parallel(
+                                        hopper.run(),
+                                        Commands.sequence(
+                                                waitFor(Constants.Shooter.kRetractDelay),
+                                                Commands.runOnce(actuator::retract)))))
+                        .raceWith(Commands.sequence(
+                                waitFor(Constants.Shooter.kSpinUpTime),
+                                waitFor(Constants.Shooter.kFiringTime))),
                 Commands.parallel(
                         shooter.stop(),
                         hopper.stop()).withTimeout(0.1)));

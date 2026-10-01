@@ -31,7 +31,7 @@ public class Limelight implements VisionIO {
           Meters.of(0.503656),
           new Rotation3d(
             Degrees.of(0), 
-            Degrees.of(-2), 
+            Degrees.of(-1), 
             Degrees.of(90)
           ));
           
@@ -53,7 +53,7 @@ public class Limelight implements VisionIO {
           Meters.of(0.503656),
           new Rotation3d(
             Degrees.of(0), 
-            Degrees.of(2), 
+            Degrees.of(1), 
             Degrees.of(-90)
           ));
     }
@@ -154,6 +154,9 @@ public class Limelight implements VisionIO {
 
           // Set configuration.
           setIMUMode(pipeline.mode);
+          
+          // Set assist alpha.
+          LimelightHelpers.SetIMUAssistAlpha(name, 0.005);
         }
 
         /**

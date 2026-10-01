@@ -224,6 +224,15 @@ public class Shooter extends SubsystemBase {
   }
 
   /**
+   * Run the shooter at a supplied velocity, re-read every cycle.
+   *
+   * @param velocity Target velocity.
+   */
+  public Command runAt(Supplier<AngularVelocity> velocity) {
+    return runVelocity(velocity);
+  }
+
+  /**
    * Velocity the shooter is held at. Read every cycle the shooter runs, so the
    * modifier can be taken or released, and the robot can move, mid-shot.
    *

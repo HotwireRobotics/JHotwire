@@ -51,18 +51,26 @@ public final class Constants {
         new Tunable<>("Shooter/ChargeUpTime", 0.1, Seconds::of);
     public static final Tunable<Time> kFiringTime =
         new Tunable<>("Shooter/FiringTime", 2.5, Seconds::of);
+    public static final Tunable<Time> kSpinUpTime =
+        new Tunable<>("Shooter/SpinUpTime", 2.0, Seconds::of);
+    // Delay from hopper start to intake retraction in the firing sequence.
+    public static final Tunable<Time> kRetractDelay =
+        new Tunable<>("Shooter/RetractDelay", 1.0, Seconds::of);
     public static final Tunable<Time> kUntilSecondMagnitude =
         new Tunable<>("Shooter/UntilSecondMagnitude", 0.75, Seconds::of);
     public static final Tunable<Time> kUntilThirdMagnitude =
         new Tunable<>("Shooter/UntilThirdMagnitude", 2.5, Seconds::of);
     public static final Tunable<Time> kDebounce =
-        new Tunable<>("Shooter/Debounce", 0.3, Seconds::of);
+        new Tunable<>("Shooter/Debounce", 1.5, Seconds::of);
 
     // Tunable target velocities and tolerances.
     public static final Tunable<AngularVelocity> kSpeed =
         new Tunable<>("Shooter/Speed", 2500, RPM::of);
+    // Fixed autonomous shot velocity, used when the dashboard selects "Fixed".
+    public static final Tunable<AngularVelocity> kAutoSpeed =
+        new Tunable<>("Shooter/AutoSpeed", 34.75, RotationsPerSecond::of);
     public static final Tunable<AngularVelocity> kVelocityTolerance =
-        new Tunable<>("Shooter/VelocityTolerance", 100, RPM::of);
+        new Tunable<>("Shooter/VelocityTolerance", 30, RotationsPerSecond::of);
     public static final AngularVelocity kZero = RPM.of(0);
 
     // Divisor on velocity target for upper shooter. Angles the output.
@@ -108,7 +116,7 @@ public final class Constants {
     public static final Tunable<Angle> kRetracted =
         new Tunable<>("Actuator/Retracted", 0, Rotations::of);
     public static final Tunable<Angle> kExtended =
-        new Tunable<>("Actuator/Extended", 2.12, Rotations::of);
+        new Tunable<>("Actuator/Extended", 1.9, Rotations::of);
 
     // Position error within which the actuator is considered "on target".
     public static final Tunable<Angle> kTolerance =
@@ -116,8 +124,8 @@ public final class Constants {
 
     // Closed-loop proportional gain for the leader motor. Applied once, at
     // device configuration.
-    public static final double kP = 4.0;
-    public static final double kI = 3.0;
+    public static final double kP = 2.0;
+    public static final double kI = 0.25;
   }
 
   public static class Control {
@@ -488,7 +496,7 @@ public final class Constants {
 
   // Derived from relationship between distance (m) and rotation (RPM).
   public static final Tunable.Scalar base =
-      new Tunable.Scalar("Shooter/Regression/Base", 21);
+      new Tunable.Scalar("Shooter/Regression/Base", 21.1);
   public static final Tunable.Scalar exponential =
       new Tunable.Scalar("Shooter/Regression/Exponential", 1);
 
